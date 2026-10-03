@@ -58,6 +58,7 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 ### Git
 - `gs`, `ga`, `gaa`, `gc`, `gcm`, `gco`, `gcb`, `gb`, `gp`, `gpl`, `gl`, `gd`, `gds`, `gst`, `gstp`
 - `gmain` — checkout the repo's default branch (`main` or `master`)
+- `gcanrebase [ref]` — check whether the current branch could be rebased onto `ref` (defaults to the repo's base branch, e.g. `origin/main`) without hitting conflicts. Actually performs the rebase to find out, but inside a disposable detached worktree, so your real working tree, index, and uncommitted changes are never touched — it's discarded either way. Exits 0 if clean, 1 if it would conflict.
 
 ### Node / package managers
 - `ni`, `nr`, `nrs`, `nrb`, `nrt` (npm)
@@ -73,6 +74,6 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date (checked once per repo per shell, not on every `cd` within it). The check itself is instant — it only compares against already-known remote-tracking info (same as `git status`), never fetching on its own. Two independent things are checked:
 
 - **vs. its own upstream** (`@{upstream}`) — behind, ahead, or diverged, e.g. `⚠️  'main' is behind 'origin/main' by 3 commit(s) - run gpl to update`
-- **vs. the repo's base branch** (`origin/main`/`origin/master`) — flags a feature branch that needs a rebase even if it has no upstream of its own, e.g. `🔀 'my-feature' is 5 commit(s) behind 'origin/main' - consider rebasing onto main`
+- **vs. the repo's base branch** (`origin/main`/`origin/master`) — flags a feature branch that needs a rebase even if it has no upstream of its own, e.g. `🔀 'my-feature' is 5 commit(s) behind 'origin/main' - run gcanrebase to check if it's safe to rebase onto main`. Run `gcanrebase` to actually check (see Git section above) before you rebase for real.
 
 Auto-fetching is **opt-in**: the first time a repo is found to be out of date and no preference has been recorded, you're asked (only in an interactive terminal) whether digivice should keep that repo's remote-tracking info fresh automatically from then on. Your answer is remembered per-repo in `.git/digivice_autofetch`. If enabled, repo entry kicks off a non-blocking `git fetch --all` in the background, throttled to once per repo per `DIGIVICE_FETCH_THROTTLE_SECONDS` (default 300 = 5 minutes; set this variable before the plugin loads to change it). If declined (or never asked, e.g. in a script), nothing is fetched automatically and you keep using `gpl`/`gp` manually.

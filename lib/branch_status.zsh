@@ -110,7 +110,7 @@ _digivice_check_branch_status() {
       ahead="${counts##*$'\t'}"
 
       if [[ "$behind" -gt 0 && "$ahead" -gt 0 ]]; then
-        echo "🔀 '$branch' has diverged from '$upstream' (ahead $ahead, behind $behind) - consider gpl --rebase" >&2
+        echo "🔀 '$branch' has diverged from '$upstream' (ahead $ahead, behind $behind) - run gcanrebase to check if 'gpl --rebase' would be clean" >&2
         is_out_of_date=1
       elif [[ "$behind" -gt 0 ]]; then
         echo "⚠️  '$branch' is behind '$upstream' by $behind commit(s) - run gpl to update" >&2
@@ -129,7 +129,7 @@ _digivice_check_branch_status() {
       local base_behind
       base_behind=$(git rev-list --count "${branch}..${base_ref}" 2>/dev/null)
       if [[ -n "$base_behind" && "$base_behind" -gt 0 ]]; then
-        echo "🔀 '$branch' is $base_behind commit(s) behind '$base_ref' - consider rebasing onto $base_branch" >&2
+        echo "🔀 '$branch' is $base_behind commit(s) behind '$base_ref' - run gcanrebase to check if it's safe to rebase onto $base_branch" >&2
         is_out_of_date=1
       fi
     fi

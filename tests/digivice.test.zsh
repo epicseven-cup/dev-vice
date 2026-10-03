@@ -96,6 +96,84 @@ test_gmain_checks_out_main() {
   rm -rf "$tmp"
 }
 
+# --- gcanrebase -------------------------------------------------------------
+
+test_gcanrebase_reports_clean_when_no_conflicts() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (
+    cd "$work" &&
+    echo "line1" > fileA.txt && git add fileA.txt && git -c user.email=t@t.com -c user.name=t commit -q -m init &&
+    git push -q -u origin HEAD:main &&
+    git checkout -q -b feature &&
+    echo "feature" > fileB.txt && git add fileB.txt && git -c user.email=t@t.com -c user.name=t commit -q -m feature &&
+    git checkout -q main &&
+    echo "mainchange" > fileC.txt && git add fileC.txt && git -c user.email=t@t.com -c user.name=t commit -q -m mainchange &&
+    git push -q origin HEAD:main &&
+    git checkout -q feature &&
+    git fetch -q origin
+  )
+  local out
+  out=$(_run "cd '$work' && gcanrebase"); local rc=$?
+  assert_contains "$out" "can be rebased onto 'origin/main' cleanly" "should report a clean rebase when there's no conflict"
+  assert_true "$rc" "gcanrebase should exit 0 when the rebase would be clean"
+  assert_eq "feature" "$(git -C "$work" branch --show-current)" "the real worktree's branch should be untouched"
+  assert_eq "" "$(git -C "$work" status --short)" "the real worktree should remain clean"
+  assert_eq "1" "$(git -C "$work" worktree list | wc -l | tr -d ' ')" "no stray worktrees should be left behind"
+  rm -rf "$bare" "$work"
+}
+
+test_gcanrebase_reports_conflict_and_leaves_repo_clean() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (
+    cd "$work" &&
+    echo "line1" > shared.txt && git add shared.txt && git -c user.email=t@t.com -c user.name=t commit -q -m init &&
+    git push -q -u origin HEAD:main &&
+    git checkout -q -b feature &&
+    echo "feature-edit" > shared.txt && git add shared.txt && git -c user.email=t@t.com -c user.name=t commit -q -m feature-edit &&
+    git checkout -q main &&
+    echo "main-edit" > shared.txt && git add shared.txt && git -c user.email=t@t.com -c user.name=t commit -q -m main-edit &&
+    git push -q origin HEAD:main &&
+    git checkout -q feature &&
+    git fetch -q origin
+  )
+  local out
+  out=$(_run "cd '$work' && gcanrebase"); local rc=$?
+  assert_contains "$out" "cannot be cleanly rebased onto 'origin/main'" "should report conflicts when the rebase would hit them"
+  assert_false "$rc" "gcanrebase should exit non-zero when the rebase would conflict"
+  assert_eq "feature" "$(git -C "$work" branch --show-current)" "the real worktree's branch should be untouched after a conflicting trial"
+  assert_eq "" "$(git -C "$work" status --short)" "the real worktree should remain clean after a conflicting trial"
+  assert_false "$([[ -d "$work/.git/rebase-merge" ]] && echo 0 || echo 1)" "no leftover rebase-merge state in the real repo"
+  rm -rf "$bare" "$work"
+}
+
+test_gcanrebase_defaults_to_the_base_branch() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (
+    cd "$work" &&
+    git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init &&
+    git push -q -u origin HEAD:main
+  )
+  local out
+  out=$(_run "cd '$work' && gcanrebase" 2>&1)
+  assert_contains "$out" "onto 'origin/main'" "with no argument, gcanrebase should default to the repo's base branch"
+  rm -rf "$bare" "$work"
+}
+
+test_gcanrebase_errors_on_unknown_ref() {
+  local tmp="$(mktemp -d)"
+  (cd "$tmp" && git init -q -b main . && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init)
+  local out
+  out=$(_run "cd '$tmp' && gcanrebase nonexistent-ref" 2>&1)
+  assert_contains "$out" "unknown ref" "gcanrebase should error on a nonexistent target ref"
+  rm -rf "$tmp"
+}
+
 test_dsh_requires_an_argument() {
   local out
   out=$(_run "dsh" 2>&1)
@@ -249,7 +327,7 @@ test_branch_status_warns_when_behind_base_branch_with_no_own_upstream() {
   (cd "$work" && git fetch -q origin)
   local out
   out=$(_run "cd '$work'" 2>&1)
-  assert_contains "$out" "'feature' is 1 commit(s) behind 'origin/main' - consider rebasing onto main" "a feature branch with no upstream should still be checked against the base branch"
+  assert_contains "$out" "'feature' is 1 commit(s) behind 'origin/main' - run gcanrebase to check if it's safe to rebase onto main" "a feature branch with no upstream should still be checked against the base branch"
   rm -rf "$bare" "$work" "$other"
 }
 

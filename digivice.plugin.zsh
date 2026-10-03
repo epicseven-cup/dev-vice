@@ -18,7 +18,7 @@ source "$DIGIVICE_DIR/lib/branch_status.zsh"
 
 typeset -gA DIGIVICE_MODULE_CMDS
 DIGIVICE_MODULE_CMDS=(
-  git    "gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain"
+  git    "gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain gcanrebase"
   node   "ni nr nrs nrb nrt yi yr pni pnr drun"
   docker "dps dpsa dimg dlog dprune dsh"
 )
