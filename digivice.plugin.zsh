@@ -16,9 +16,13 @@ source "$DIGIVICE_DIR/lib/navigation.zsh"
 # so this can't be lazy-loaded like the command modules below
 source "$DIGIVICE_DIR/lib/branch_status.zsh"
 
+# completion needs to be registered against the gcm stub before gcm
+# is ever called, so this can't be lazy-loaded either
+source "$DIGIVICE_DIR/lib/completions.zsh"
+
 typeset -gA DIGIVICE_MODULE_CMDS
 DIGIVICE_MODULE_CMDS=(
-  git    "gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain gcanrebase"
+  git    "git gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain gcanrebase"
   node   "ni nr nrs nrb nrt yi yr pni pnr drun"
   docker "dps dpsa dimg dlog dprune dsh"
   github "ghwfnew ghwfls ghwfedit"

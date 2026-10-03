@@ -96,6 +96,115 @@ test_gmain_checks_out_main() {
   rm -rf "$tmp"
 }
 
+# --- gcm Conventional Commits shorthand -------------------------------------
+
+test_gcm_expands_shorthand_type() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && gcm 'ft: add a' >/dev/null && git log -1 --format=%s")
+  assert_eq "feat: add a" "$out" "gcm should expand the 'ft' shorthand to 'feat'"
+  rm -rf "$tmp"
+}
+
+test_gcm_expands_shorthand_with_scope_and_breaking_marker() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && gcm 'fx(core)!: fix a' >/dev/null && git log -1 --format=%s")
+  assert_eq "fix(core)!: fix a" "$out" "gcm should expand shorthand while preserving scope and the breaking-change marker"
+  rm -rf "$tmp"
+}
+
+test_gcm_leaves_full_conventional_type_unchanged() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && gcm 'docs: add a' >/dev/null && git log -1 --format=%s")
+  assert_eq "docs: add a" "$out" "a message already using a full conventional type should pass through unchanged"
+  rm -rf "$tmp"
+}
+
+test_gcm_leaves_unrecognized_prefix_unchanged() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && gcm 'random: add a' >/dev/null && git log -1 --format=%s")
+  assert_eq "random: add a" "$out" "an unrecognized prefix should not be rewritten"
+  rm -rf "$tmp"
+}
+
+test_gcm_leaves_plain_message_unchanged() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && gcm 'just a message' >/dev/null && git log -1 --format=%s")
+  assert_eq "just a message" "$out" "a message with no colon should pass through unchanged"
+  rm -rf "$tmp"
+}
+
+test_gcm_completion_registers_with_compdef_when_available() {
+  local out
+  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcm]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_digivice_gcm_types" "$out" "gcm's completion function should register via compdef when compinit is active"
+}
+
+test_gcm_completion_setup_is_a_noop_without_compinit() {
+  local out
+  out=$(_run ': 2>&1')
+  assert_true "$?" "sourcing the plugin should not error when compdef/compinit isn't available"
+}
+
+test_gcb_completion_registers_with_compdef_when_available() {
+  local out
+  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcb]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_digivice_gcb_prefixes" "$out" "gcb's completion function should register via compdef when compinit is active"
+}
+
+test_git_completion_registers_with_compdef_when_available() {
+  local out
+  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[git]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_digivice_git" "$out" "git's completion function should register via compdef when compinit is active"
+}
+
+# --- plain `git` wrapper (same Conventional Commits expansion as gcm) ------
+
+test_plain_git_commit_dash_m_expands_shorthand() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && git commit -m 'ft: add a' >/dev/null && git log -1 --format=%s")
+  assert_eq "feat: add a" "$out" "plain 'git commit -m' should get the same shorthand expansion as gcm"
+  rm -rf "$tmp"
+}
+
+test_plain_git_commit_dash_am_expands_shorthand() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && git commit -q -m init && echo x >> a && git commit -am 'fx: tweak a' >/dev/null && git log -1 --format=%s")
+  assert_eq "fix: tweak a" "$out" "'git commit -am' should also get shorthand expansion"
+  rm -rf "$tmp"
+}
+
+test_plain_git_commit_message_equals_expands_shorthand() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && git commit --message='dc: add a' >/dev/null && git log -1 --format=%s")
+  assert_eq "docs: add a" "$out" "'git commit --message=...' should also get shorthand expansion"
+  rm -rf "$tmp"
+}
+
+test_plain_git_other_subcommands_are_unaffected() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
+  local out
+  out=$(_run "cd '$tmp' && touch a && git add a && git status --short")
+  assert_eq "A  a" "$out" "the git wrapper should leave non-commit subcommands completely untouched"
+  rm -rf "$tmp"
+}
+
 # --- gcanrebase -------------------------------------------------------------
 
 test_gcanrebase_reports_clean_when_no_conflicts() {

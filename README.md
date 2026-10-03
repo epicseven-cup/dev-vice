@@ -30,13 +30,14 @@ digivice.plugin.zsh   # entry point, sources everything in lib/
 lib/
   navigation.zsh      # cd shortcuts
   branch_status.zsh    # out-of-date branch warnings (chpwd hook)
-  git.zsh              # git aliases + gmain + gcanrebase
+  completions.zsh      # tab completion for gcm/gcb/git (compdef)
+  git.zsh              # git aliases + gmain + gcanrebase + gcm shorthand + git wrapper
   node.zsh             # npm/yarn/pnpm aliases + drun
   docker.zsh           # docker aliases + dsh
   github.zsh           # GitHub Actions workflow scaffolding
 ```
 
-Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh` and `branch_status.zsh` are small/need to run unconditionally, so they're loaded eagerly.
+Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh`, `branch_status.zsh`, and `completions.zsh` need to run unconditionally (hooks/completion registration must be set up before the commands they target are ever called), so they're loaded eagerly.
 
 To add your own lazy-loaded shortcuts: add a `*.zsh` file to `lib/` and register its command names in the `DIGIVICE_MODULE_CMDS` map in `digivice.plugin.zsh`.
 
@@ -57,9 +58,31 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 - `-` — go to previous directory
 
 ### Git
-- `gs`, `ga`, `gaa`, `gc`, `gcm`, `gco`, `gcb`, `gb`, `gp`, `gpl`, `gl`, `gd`, `gds`, `gst`, `gstp`
+- `gs`, `ga`, `gaa`, `gc`, `gco`, `gb`, `gp`, `gpl`, `gl`, `gd`, `gds`, `gst`, `gstp`
 - `gmain` — checkout the repo's default branch (`main` or `master`)
 - `gcanrebase [ref]` — check whether the current branch could be rebased onto `ref` (defaults to the repo's base branch, e.g. `origin/main`) without hitting conflicts. Actually performs the rebase to find out, but inside a disposable detached worktree, so your real working tree, index, and uncommitted changes are never touched — it's discarded either way. Exits 0 if clean, 1 if it would conflict.
+
+#### Conventional Commits ([conventionalcommits.org](https://www.conventionalcommits.org/))
+
+`gcm <message>` (and **plain `git commit -m`/`-am`/`--message=`**, since digivice wraps `git` itself) auto-expand a leading shorthand commit type:
+
+- Tab-complete it: `gcm <TAB>` suggests `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` with descriptions, colored cyan with a green header (needs a completion system — Oh My Zsh's is on by default).
+- Or type the shorthand directly — it expands either way: `gcm 'ft: add x'` → commits as `feat: add x`. Shorthands: `ft`→feat, `fx`→fix, `dc`→docs, `sty`→style, `rf`→refactor, `pf`→perf, `ts`→test, `bd`→build, `ch`→chore, `rv`→revert. Scope and the breaking-change `!` are preserved: `gcm 'fx(core)!: fix x'` → `fix(core)!: fix x`.
+- A message already using a full type, or not matching any recognized type, passes through unchanged. Every other git subcommand is completely unaffected by the `git` wrapper — it only touches `commit`'s message argument.
+
+#### Branch naming
+
+`gcb <name>` (and **plain `git checkout -b <name>`** / `git switch -c <name>`) tab-complete a branch-prefix convention:
+
+| Prefix | Shorthand | For |
+|---|---|---|
+| `feature/` | `feat/` | A new feature or requirement |
+| `bugfix/` | `fix/` | A routine bug fix tied to a dev cycle |
+| `hotfix/` | — | A critical patch bypassing the normal release schedule |
+| `chore/` | `refactor/` | Tech debt, dependency updates, config changes, cleanups |
+| `docs/` | — | Documentation, readmes, wikis |
+
+e.g. `gcb <TAB>` or `git checkout -b <TAB>` lists these (cyan, green header); pick one and keep typing the rest of the branch name.
 
 ### Node / package managers
 - `ni`, `nr`, `nrs`, `nrb`, `nrt` (npm)

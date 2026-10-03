@@ -4,7 +4,95 @@ gs() { git status "$@" }
 ga() { git add "$@" }
 gaa() { git add -A "$@" }
 gc() { git commit -v "$@" }
-gcm() { git commit -m "$@" }
+
+# shorthand -> Conventional Commits (https://www.conventionalcommits.org/)
+# type, so `gcm ft: add x` becomes `git commit -m "feat: add x"`.
+typeset -gA DIGIVICE_COMMIT_TYPE_ALIASES=(
+  ft feat
+  fx fix
+  dc docs
+  sty style
+  rf refactor
+  pf perf
+  ts test
+  bd build
+  ch chore
+  rv revert
+)
+
+# expand a leading Conventional Commits shorthand type (see
+# DIGIVICE_COMMIT_TYPE_ALIASES) in a commit message. Handles an
+# optional scope and/or breaking-change `!`, e.g. `ft(api)!: msg`
+# becomes `feat(api)!: msg`. A message that doesn't start with a
+# recognized (full or shorthand) type is passed through unchanged.
+_digivice_expand_commit_type() {
+  local msg="$1"
+  if [[ "$msg" == *:* ]]; then
+    local prefix="${msg%%:*}"
+    local rest="${msg#*:}"
+    local type="${prefix%%[^[:alpha:]]*}"
+    local suffix="${prefix#$type}"
+    local full="${DIGIVICE_COMMIT_TYPE_ALIASES[$type]}"
+    if [[ -n "$full" ]]; then
+      msg="${full}${suffix}:${rest}"
+    fi
+  fi
+  print -r -- "$msg"
+}
+
+# git commit -m, with the shorthand expansion above applied.
+gcm() {
+  local msg
+  msg="$(_digivice_expand_commit_type "$1")"
+  shift
+  git commit -m "$msg" "$@"
+}
+
+# wraps the real `git` so plain `git commit -m '...'` (and -am,
+# --message, --message=...) gets the same Conventional Commits
+# shorthand expansion as `gcm`, without changing any other git
+# command's behavior. Always delegates to `command git` underneath.
+git() {
+  if [[ "$1" == "commit" ]]; then
+    local -a out
+    out=("$1")
+    shift
+    local arg
+    while (( $# )); do
+      arg="$1"
+      case "$arg" in
+        -m|--message)
+          out+=("$arg")
+          shift
+          if (( $# )); then
+            out+=("$(_digivice_expand_commit_type "$1")")
+            shift
+          fi
+          continue
+          ;;
+        --message=*)
+          out+=("--message=$(_digivice_expand_commit_type "${arg#--message=}")")
+          shift
+          continue
+          ;;
+        -*m)
+          out+=("$arg")
+          shift
+          if (( $# )); then
+            out+=("$(_digivice_expand_commit_type "$1")")
+            shift
+          fi
+          continue
+          ;;
+      esac
+      out+=("$arg")
+      shift
+    done
+    command git "${out[@]}"
+    return
+  fi
+  command git "$@"
+}
 gco() { git checkout "$@" }
 gcb() { git checkout -b "$@" }
 gb() { git branch "$@" }
