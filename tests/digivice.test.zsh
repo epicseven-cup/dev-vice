@@ -22,9 +22,11 @@ DIGIVICE_PLUGIN="${DIGIVICE_PROJECT_ROOT}/digivice.plugin.zsh"
 # aliases defined by the just-sourced plugin.
 # start in /tmp (never a git repo) before sourcing, so the plugin's
 # load-time branch-status check has nothing to report before the test
-# command runs its own `cd`
+# command runs its own `cd`. stdin is /dev/null so this never has a
+# tty - the autofetch opt-in prompt must never fire (and never hang)
+# under test.
 _run() {
-  zsh -c "cd /tmp && source '$DIGIVICE_PLUGIN'; eval ${(qqq)1}"
+  zsh -c "cd /tmp && source '$DIGIVICE_PLUGIN'; eval ${(qqq)1}" < /dev/null
 }
 
 test_plugin_sources_without_error() {
@@ -171,6 +173,99 @@ test_branch_status_only_checks_once_per_repo() {
   local count
   count=$(print -r -- "$out" | grep -c "is behind")
   assert_eq "1" "$count" "cd'ing within the same repo should not re-print the warning"
+  rm -rf "$bare" "$work" "$other"
+}
+
+# --- autofetch opt-in -------------------------------------------------------
+
+test_autofetch_prompt_skipped_and_undecided_without_a_tty() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  git clone -q "$bare" "$other"
+  (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
+  (cd "$work" && git fetch -q origin)
+  local out
+  out=$(_run "cd '$work'" 2>&1)
+  assert_contains "$out" "is behind" "should still warn even without a tty"
+  assert_eq "0" "$([[ -f "$work/.git/digivice_autofetch" ]] && echo 1 || echo 0)" "no tty means no prompt, so no preference should be recorded"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_autofetch_disabled_by_saved_no_preference() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  git clone -q "$bare" "$other"
+  (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
+  (cd "$work" && git fetch -q origin)
+  echo "no" > "$work/.git/digivice_autofetch"
+  local out
+  out=$(_run "cd '$work'" 2>&1)
+  assert_eq "0" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'no' preference should skip the background fetch entirely"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_autofetch_enabled_by_saved_yes_preference() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  git clone -q "$bare" "$other"
+  (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
+  (cd "$work" && git fetch -q origin)
+  echo "yes" > "$work/.git/digivice_autofetch"
+  _run "cd '$work'" >/dev/null 2>&1
+  assert_eq "1" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'yes' preference should trigger the background fetch"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_autofetch_not_triggered_when_up_to_date_even_if_enabled() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  echo "yes" > "$work/.git/digivice_autofetch"
+  _run "cd '$work'" >/dev/null 2>&1
+  # background fetch is gated on autofetch being enabled, independent of
+  # whether the repo happens to be up to date - it should still run
+  assert_eq "1" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "enabled autofetch should run regardless of current up-to-date status"
+  rm -rf "$bare" "$work"
+}
+
+# --- base-branch rebase check -----------------------------------------------
+
+test_branch_status_warns_when_behind_base_branch_with_no_own_upstream() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  # feature branch forks right after init, before main advances further, and has no upstream of its own
+  (cd "$work" && git checkout -q -b feature && git branch --unset-upstream)
+  git clone -q "$bare" "$other"
+  (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
+  (cd "$work" && git fetch -q origin)
+  local out
+  out=$(_run "cd '$work'" 2>&1)
+  assert_contains "$out" "'feature' is 1 commit(s) behind 'origin/main' - consider rebasing onto main" "a feature branch with no upstream should still be checked against the base branch"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_branch_status_does_not_duplicate_warning_when_upstream_is_base_branch() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work"
+  (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
+  git clone -q "$bare" "$other"
+  (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
+  (cd "$work" && git fetch -q origin)
+  local out
+  out=$(_run "cd '$work'" 2>&1)
+  local count
+  count=$(print -r -- "$out" | grep -c "behind")
+  assert_eq "1" "$count" "when the branch's own upstream is the base branch, only one warning should print"
   rm -rf "$bare" "$work" "$other"
 }
 
