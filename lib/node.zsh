@@ -1,4 +1,4 @@
-# digivice: node / package managers
+# dev-vice: node / package managers
 
 ni() { npm install "$@" }
 nr() { npm run "$@" }
@@ -22,7 +22,7 @@ drun() {
   elif [[ -f package-lock.json || -f package.json ]]; then
     npm run "$script"
   else
-    echo "digivice: no package.json found" >&2
+    echo "dev-vice: no package.json found" >&2
     return 1
   fi
 }

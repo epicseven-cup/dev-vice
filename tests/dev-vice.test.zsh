@@ -1,4 +1,4 @@
-# digivice: tests for digivice.plugin.zsh and its lib/ modules
+# dev-vice: tests for dev-vice.plugin.zsh and its lib/ modules
 #
 # Each test runs the plugin in a fresh `zsh -c` subshell so tests never
 # share state (loaded modules, cwd, PATH stubs) with each other.
@@ -7,9 +7,9 @@
 # source-time. Inside the test functions below, $0 has reverted to
 # whatever it was before sourcing - so compute paths once here, not
 # inside the functions that use them later.
-DIGIVICE_TEST_DIR="${0:A:h}"
-DIGIVICE_PROJECT_ROOT="${DIGIVICE_TEST_DIR}/.."
-DIGIVICE_PLUGIN="${DIGIVICE_PROJECT_ROOT}/digivice.plugin.zsh"
+DEVVICE_TEST_DIR="${0:A:h}"
+DEVVICE_PROJECT_ROOT="${DEVVICE_TEST_DIR}/.."
+DEVVICE_PLUGIN="${DEVVICE_PROJECT_ROOT}/dev-vice.plugin.zsh"
 
 # run zsh code with the plugin sourced first; prints stdout, exit code
 # available via $? after the call.
@@ -26,7 +26,7 @@ DIGIVICE_PLUGIN="${DIGIVICE_PROJECT_ROOT}/digivice.plugin.zsh"
 # tty - the autofetch opt-in prompt must never fire (and never hang)
 # under test.
 _run() {
-  zsh -c "cd /tmp && source '$DIGIVICE_PLUGIN'; eval ${(qqq)1}" < /dev/null
+  zsh -c "cd /tmp && source '$DEVVICE_PLUGIN'; eval ${(qqq)1}" < /dev/null
 }
 
 test_plugin_sources_without_error() {
@@ -44,7 +44,7 @@ test_navigation_alias_changes_directory() {
 test_git_command_starts_as_stub() {
   local out
   out=$(_run "type gs")
-  assert_contains "$out" "digivice.plugin.zsh" "gs should initially be the lazy stub"
+  assert_contains "$out" "dev-vice.plugin.zsh" "gs should initially be the lazy stub"
 }
 
 test_git_command_loads_real_function_on_first_call() {
@@ -70,7 +70,7 @@ test_unrelated_modules_stay_lazy() {
   git init -q "$tmp"
   local out
   out=$(_run "cd '$tmp' && gs >/dev/null; type drun")
-  assert_contains "$out" "digivice.plugin.zsh" "drun (node module) should remain a stub after a git command runs"
+  assert_contains "$out" "dev-vice.plugin.zsh" "drun (node module) should remain a stub after a git command runs"
   rm -rf "$tmp"
 }
 
@@ -153,7 +153,7 @@ test_gcm_leaves_plain_message_unchanged() {
 }
 
 test_gcm_all_documented_shorthands_expand_correctly() {
-  # exercises every entry in DIGIVICE_COMMIT_TYPE_ALIASES directly
+  # exercises every entry in DEVVICE_COMMIT_TYPE_ALIASES directly
   # (no git commit needed) - catches a typo in the table itself, not
   # just the one or two shorthands spot-checked above.
   local pairs="ft:feat fx:fix dc:docs sty:style rf:refactor pf:perf ts:test bd:build ch:chore rv:revert"
@@ -162,16 +162,16 @@ test_gcm_all_documented_shorthands_expand_correctly() {
     short="${pair%%:*}"
     full="${pair#*:}"
     # `gs 2>/dev/null` just forces git.zsh to load (defining
-    # _digivice_expand_commit_type) before calling it directly
-    out=$(_run "gs >/dev/null 2>&1; _digivice_expand_commit_type '${short}: msg'")
+    # _devvice_expand_commit_type) before calling it directly
+    out=$(_run "gs >/dev/null 2>&1; _devvice_expand_commit_type '${short}: msg'")
     assert_eq "${full}: msg" "$out" "shorthand '$short' should expand to '$full'"
   done
 }
 
 test_gcm_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcm]:-NOT-REGISTERED}" < /dev/null)
-  assert_eq "_digivice_gcm_types" "$out" "gcm's completion function should register via compdef when compinit is active"
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DEVVICE_PLUGIN'; echo \${_comps[gcm]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_devvice_gcm_types" "$out" "gcm's completion function should register via compdef when compinit is active"
 }
 
 test_gcm_completion_setup_is_a_noop_without_compinit() {
@@ -182,14 +182,14 @@ test_gcm_completion_setup_is_a_noop_without_compinit() {
 
 test_gcb_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcb]:-NOT-REGISTERED}" < /dev/null)
-  assert_eq "_digivice_gcb_prefixes" "$out" "gcb's completion function should register via compdef when compinit is active"
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DEVVICE_PLUGIN'; echo \${_comps[gcb]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_devvice_gcb_prefixes" "$out" "gcb's completion function should register via compdef when compinit is active"
 }
 
 test_git_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[git]:-NOT-REGISTERED}" < /dev/null)
-  assert_eq "_digivice_git" "$out" "git's completion function should register via compdef when compinit is active"
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DEVVICE_PLUGIN'; echo \${_comps[git]:-NOT-REGISTERED}" < /dev/null)
+  assert_eq "_devvice_git" "$out" "git's completion function should register via compdef when compinit is active"
 }
 
 # --- plain `git` wrapper (same Conventional Commits expansion as gcm) ------
@@ -396,12 +396,12 @@ test_drun_errors_without_package_json() {
   rm -rf "$tmp"
 }
 
-# --- digivice_prompt_info ---------------------------------------------------
+# --- dev_vice_prompt_info ---------------------------------------------------
 
 test_prompt_info_silent_outside_a_git_repo() {
   local tmp="$(mktemp -d)"
   local out
-  out=$(_run "cd '$tmp' && digivice_prompt_info")
+  out=$(_run "cd '$tmp' && dev_vice_prompt_info")
   assert_eq "" "$out" "no git repo should mean no prompt info output"
   rm -rf "$tmp"
 }
@@ -412,7 +412,7 @@ test_prompt_info_silent_when_up_to_date() {
   git clone -q "$bare" "$work"
   (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "" "$out" "a branch in sync with its upstream should produce no prompt info"
   rm -rf "$bare" "$work"
 }
@@ -426,7 +426,7 @@ test_prompt_info_shows_behind_count() {
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "%F{yellow}⬇1%f" "$out" "should show a yellow behind-count icon"
   rm -rf "$bare" "$work" "$other"
 }
@@ -442,7 +442,7 @@ test_prompt_info_shows_ahead_count() {
     git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m local-only
   )
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "%F{green}⬆1%f" "$out" "should show a green ahead-count icon"
   rm -rf "$bare" "$work"
 }
@@ -456,7 +456,7 @@ test_prompt_info_shows_diverged() {
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m local-only)
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "%F{red}⬍1/1%f" "$out" "should show a red diverged icon with behind/ahead counts"
   rm -rf "$bare" "$work" "$other"
 }
@@ -471,7 +471,7 @@ test_prompt_info_recomputes_on_every_call() {
   (cd "$work" && git fetch -q origin)
   mkdir -p "$work/subdir"
   local out
-  out=$(_run "cd '$work' && cd subdir && cd .. && digivice_prompt_info")
+  out=$(_run "cd '$work' && cd subdir && cd .. && dev_vice_prompt_info")
   assert_eq "%F{yellow}⬇1%f" "$out" "unlike the old chpwd-only check, prompt info must reflect the current state on every call"
   rm -rf "$bare" "$work" "$other"
 }
@@ -487,7 +487,7 @@ test_autofetch_prompt_skipped_and_undecided_without_a_tty() {
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
   _run "cd '$work'" >/dev/null 2>&1
-  assert_eq "0" "$([[ -f "$work/.git/digivice_autofetch" ]] && echo 1 || echo 0)" "no tty means no prompt, so no preference should be recorded"
+  assert_eq "0" "$([[ -f "$work/.git/devvice_autofetch" ]] && echo 1 || echo 0)" "no tty means no prompt, so no preference should be recorded"
   rm -rf "$bare" "$work" "$other"
 }
 
@@ -499,10 +499,10 @@ test_autofetch_disabled_by_saved_no_preference() {
   git clone -q "$bare" "$other"
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
-  echo "no" > "$work/.git/digivice_autofetch"
+  echo "no" > "$work/.git/devvice_autofetch"
   local out
   out=$(_run "cd '$work'" 2>&1)
-  assert_eq "0" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'no' preference should skip the background fetch entirely"
+  assert_eq "0" "$([[ -f "$work/.git/devvice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'no' preference should skip the background fetch entirely"
   rm -rf "$bare" "$work" "$other"
 }
 
@@ -514,9 +514,9 @@ test_autofetch_enabled_by_saved_yes_preference() {
   git clone -q "$bare" "$other"
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
-  echo "yes" > "$work/.git/digivice_autofetch"
+  echo "yes" > "$work/.git/devvice_autofetch"
   _run "cd '$work'" >/dev/null 2>&1
-  assert_eq "1" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'yes' preference should trigger the background fetch"
+  assert_eq "1" "$([[ -f "$work/.git/devvice_last_fetch" ]] && echo 1 || echo 0)" "a saved 'yes' preference should trigger the background fetch"
   rm -rf "$bare" "$work" "$other"
 }
 
@@ -525,11 +525,11 @@ test_autofetch_not_triggered_when_up_to_date_even_if_enabled() {
   git init -q --bare "$bare"
   git clone -q "$bare" "$work"
   (cd "$work" && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init && git push -q -u origin HEAD:main)
-  echo "yes" > "$work/.git/digivice_autofetch"
+  echo "yes" > "$work/.git/devvice_autofetch"
   _run "cd '$work'" >/dev/null 2>&1
   # background fetch is gated on autofetch being enabled, independent of
   # whether the repo happens to be up to date - it should still run
-  assert_eq "1" "$([[ -f "$work/.git/digivice_last_fetch" ]] && echo 1 || echo 0)" "enabled autofetch should run regardless of current up-to-date status"
+  assert_eq "1" "$([[ -f "$work/.git/devvice_last_fetch" ]] && echo 1 || echo 0)" "enabled autofetch should run regardless of current up-to-date status"
   rm -rf "$bare" "$work"
 }
 
@@ -546,7 +546,7 @@ test_prompt_info_shows_rebase_icon_with_no_own_upstream() {
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "%F{cyan}⟲1%f" "$out" "a feature branch with no upstream should still show the base-branch rebase icon"
   rm -rf "$bare" "$work" "$other"
 }
@@ -560,7 +560,7 @@ test_prompt_info_does_not_duplicate_when_upstream_is_base_branch() {
   (cd "$other" && git checkout -q main && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m second && git push -q origin HEAD:main)
   (cd "$work" && git fetch -q origin)
   local out
-  out=$(_run "cd '$work' && digivice_prompt_info")
+  out=$(_run "cd '$work' && dev_vice_prompt_info")
   assert_eq "%F{yellow}⬇1%f" "$out" "when the branch's own upstream is the base branch, only the behind icon should show (no separate rebase icon)"
   rm -rf "$bare" "$work" "$other"
 }
@@ -568,16 +568,16 @@ test_prompt_info_does_not_duplicate_when_upstream_is_base_branch() {
 # --- self-update -------------------------------------------------------
 
 # builds bare + two clones ($work, $other), each seeded with a copy
-# of the actual current plugin source (so DIGIVICE_DIR-based checks
+# of the actual current plugin source (so DEVVICE_DIR-based checks
 # have real files to work with), with $other one commit ahead of
 # $work after $work has fetched (but not merged) that commit.
 _seed_self_update_fixture() {
   local bare="$1" work="$2" other="$3"
   git init -q --bare "$bare"
   git clone -q "$bare" "$work" 2>/dev/null
-  cp "$DIGIVICE_PLUGIN" "$work/"
+  cp "$DEVVICE_PLUGIN" "$work/"
   mkdir -p "$work/lib"
-  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
+  cp "$DEVVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
   (cd "$work" && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m init && git push -q -u origin HEAD:main) >/dev/null
   git clone -q "$bare" "$other" 2>/dev/null
   (cd "$other" && git checkout -q main && echo "# bump" >> lib/navigation.zsh && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m bump && git push -q origin HEAD:main) >/dev/null
@@ -588,12 +588,12 @@ test_self_update_silent_when_up_to_date() {
   local bare="$(mktemp -d)" work="$(mktemp -d)"
   git init -q --bare "$bare"
   git clone -q "$bare" "$work" 2>/dev/null
-  cp "$DIGIVICE_PLUGIN" "$work/"
+  cp "$DEVVICE_PLUGIN" "$work/"
   mkdir -p "$work/lib"
-  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
+  cp "$DEVVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
   (cd "$work" && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m init && git push -q -u origin HEAD:main) >/dev/null
   local out
-  out=$(zsh -c "source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
+  out=$(zsh -c "source '$work/dev-vice.plugin.zsh'" < /dev/null 2>&1)
   assert_eq "" "$out" "no update available should mean no suggestion"
   rm -rf "$bare" "$work"
 }
@@ -602,8 +602,8 @@ test_self_update_suggests_when_behind() {
   local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
   _seed_self_update_fixture "$bare" "$work" "$other"
   local out
-  out=$(zsh -c "source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
-  assert_contains "$out" "digivice: 1 update(s) available" "should suggest updating when the plugin's own clone is behind its origin"
+  out=$(zsh -c "source '$work/dev-vice.plugin.zsh'" < /dev/null 2>&1)
+  assert_contains "$out" "dev-vice: 1 update(s) available" "should suggest updating when the plugin's own clone is behind its origin"
   rm -rf "$bare" "$work" "$other"
 }
 
@@ -611,61 +611,61 @@ test_self_update_check_respects_opt_out() {
   local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
   _seed_self_update_fixture "$bare" "$work" "$other"
   local out
-  out=$(zsh -c "DIGIVICE_SELF_UPDATE_CHECK=0 source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
-  assert_eq "" "$out" "DIGIVICE_SELF_UPDATE_CHECK=0 should suppress the suggestion entirely"
+  out=$(zsh -c "DEVVICE_SELF_UPDATE_CHECK=0 source '$work/dev-vice.plugin.zsh'" < /dev/null 2>&1)
+  assert_eq "" "$out" "DEVVICE_SELF_UPDATE_CHECK=0 should suppress the suggestion entirely"
   rm -rf "$bare" "$work" "$other"
 }
 
-test_digivice_update_fast_forwards_and_reports_success() {
+test_devvice_update_fast_forwards_and_reports_success() {
   local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
   _seed_self_update_fixture "$bare" "$work" "$other"
   local out
-  out=$(zsh -c "source '$work/digivice.plugin.zsh'; digivice-update" < /dev/null 2>&1)
-  assert_contains "$out" "digivice updated" "digivice-update should report success"
-  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "digivice-update should actually pull the new content"
+  out=$(zsh -c "source '$work/dev-vice.plugin.zsh'; dev-vice-update" < /dev/null 2>&1)
+  assert_contains "$out" "dev-vice updated" "dev-vice-update should report success"
+  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "dev-vice-update should actually pull the new content"
   rm -rf "$bare" "$work" "$other"
 }
 
-test_digivice_update_errors_outside_a_git_repo() {
+test_devvice_update_errors_outside_a_git_repo() {
   local plain="$(mktemp -d)"
-  cp "$DIGIVICE_PLUGIN" "$plain/"
+  cp "$DEVVICE_PLUGIN" "$plain/"
   mkdir -p "$plain/lib"
-  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$plain/lib/"
+  cp "$DEVVICE_PROJECT_ROOT"/lib/*.zsh "$plain/lib/"
   local out
-  out=$(zsh -c "source '$plain/digivice.plugin.zsh'; digivice-update" < /dev/null 2>&1)
-  assert_contains "$out" "isn't a git repo" "digivice-update should error cleanly if its own directory isn't a git repo"
+  out=$(zsh -c "source '$plain/dev-vice.plugin.zsh'; dev-vice-update" < /dev/null 2>&1)
+  assert_contains "$out" "isn't a git repo" "dev-vice-update should error cleanly if its own directory isn't a git repo"
   rm -rf "$plain"
 }
 
-# --- digivice help/dispatch command -----------------------------------
+# --- dev-vice help/dispatch command -----------------------------------
 
-test_digivice_bare_shows_help() {
+test_devvice_bare_shows_help() {
   local out
-  out=$(_run "digivice")
-  assert_contains "$out" "zsh dev productivity plugin" "bare 'digivice' should print the help text"
+  out=$(_run "dev-vice")
+  assert_contains "$out" "zsh dev productivity plugin" "bare 'dev-vice' should print the help text"
   assert_contains "$out" "gcanrebase" "help text should mention commands"
 }
 
-test_digivice_help_shows_help() {
+test_devvice_help_shows_help() {
   local out
-  out=$(_run "digivice help")
-  assert_contains "$out" "zsh dev productivity plugin" "'digivice help' should print the same help text"
+  out=$(_run "dev-vice help")
+  assert_contains "$out" "zsh dev productivity plugin" "'dev-vice help' should print the same help text"
 }
 
-test_digivice_unknown_subcommand_errors() {
+test_devvice_unknown_subcommand_errors() {
   local out
-  out=$(_run "digivice bogus" 2>&1); local rc=$?
+  out=$(_run "dev-vice bogus" 2>&1); local rc=$?
   assert_contains "$out" "unknown subcommand 'bogus'" "an unrecognized subcommand should error with guidance"
   assert_false "$rc" "an unrecognized subcommand should exit non-zero"
 }
 
-test_digivice_update_shortcut_delegates_to_digivice_update() {
+test_devvice_update_shortcut_delegates_to_devvice_update() {
   local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
   _seed_self_update_fixture "$bare" "$work" "$other"
   local out
-  out=$(zsh -c "source '$work/digivice.plugin.zsh'; digivice update" < /dev/null 2>&1)
-  assert_contains "$out" "digivice updated" "'digivice update' should delegate to digivice-update"
-  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "'digivice update' should actually pull the new content"
+  out=$(zsh -c "source '$work/dev-vice.plugin.zsh'; dev-vice update" < /dev/null 2>&1)
+  assert_contains "$out" "dev-vice updated" "'dev-vice update' should delegate to dev-vice-update"
+  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "'dev-vice update' should actually pull the new content"
   rm -rf "$bare" "$work" "$other"
 }
 

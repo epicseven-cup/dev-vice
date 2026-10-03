@@ -1,4 +1,4 @@
-# digivice: tab-completion suggestions for gcm's Conventional Commits
+# dev-vice: tab-completion suggestions for gcm's Conventional Commits
 # type (https://www.conventionalcommits.org/) and gcb's branch-name
 # prefixes. Loaded eagerly (completion needs to be registered before
 # gcm/gcb are ever called, and it's cheap) but only if the zsh
@@ -6,7 +6,7 @@
 # before sourcing plugins, but a bare `zsh -c` test environment won't
 # have it, so this degrades to a no-op rather than erroring.
 
-_digivice_gcm_types() {
+_devvice_gcm_types() {
   local -a types
   types=(
     'feat:A new feature'
@@ -24,7 +24,7 @@ _digivice_gcm_types() {
   _describe -t commit-types 'conventional commit type' types
 }
 
-_digivice_gcb_prefixes() {
+_devvice_gcb_prefixes() {
   local -a prefixes
   prefixes=(
     'feature/:New feature or requirement'
@@ -46,17 +46,17 @@ _digivice_gcb_prefixes() {
 # combo ending in m), and otherwise falls through to the normal
 # `_git` completer so every other git subcommand completes exactly
 # as it always did.
-_digivice_git() {
+_devvice_git() {
   local subcmd="${words[2]}" prevword="${words[CURRENT-1]}"
   if { [[ "$subcmd" == "checkout" && "$prevword" == "-b" ]] ||
        [[ "$subcmd" == "switch" && "$prevword" == "-c" ]]; }; then
-    _digivice_gcb_prefixes
+    _devvice_gcb_prefixes
     return
   fi
   if [[ "$subcmd" == "commit" ]]; then
     case "$prevword" in
       -m|--message|-*m)
-        _digivice_gcm_types
+        _devvice_gcm_types
         return
         ;;
     esac
@@ -65,16 +65,16 @@ _digivice_git() {
 }
 
 if (( $+functions[compdef] )); then
-  compdef _digivice_gcm_types gcm
-  compdef _digivice_gcb_prefixes gcb
-  compdef _digivice_git git
+  compdef _devvice_gcm_types gcm
+  compdef _devvice_gcb_prefixes gcb
+  compdef _devvice_git git
 
-  # color digivice's own completion suggestions: candidate text in
+  # color dev-vice's own completion suggestions: candidate text in
   # cyan, group headers (e.g. "-- conventional commit type --") in
   # green. Scoped to the gcm/gcb/git commands only, so other
   # completions elsewhere in the shell are left at the user's normal
   # colors (git's own non-branch-prefix completions included, since
-  # _digivice_git delegates those straight to the real _git).
+  # _devvice_git delegates those straight to the real _git).
   zstyle ':completion:*:*:(gcm|gcb):*' list-colors '=(#b)(*)=36'
   zstyle ':completion:*:*:(gcm|gcb):*:descriptions' format $'\e[32m-- %d --\e[0m'
   # for plain `git`, scope value coloring to just our own tags

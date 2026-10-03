@@ -1,10 +1,10 @@
-# digivice: a single discoverable entry point. Run `digivice` (or
-# `digivice help`) for a full command cheat-sheet; `digivice update`
-# is a shortcut for `digivice-update`.
+# dev-vice: a single discoverable entry point. Run `dev-vice` (or
+# `dev-vice help`) for a full command cheat-sheet; `dev-vice update`
+# is a shortcut for `dev-vice-update`.
 
-digivice-help() {
+dev-vice-help() {
   cat <<'EOF'
-digivice - zsh dev productivity plugin
+dev-vice - zsh dev productivity plugin
 
 GIT
   gs, ga, gaa, gc, gco, gb, gp, gpl, gl, gd, gds, gst, gstp   thin git aliases
@@ -41,32 +41,32 @@ NAVIGATION
   -                 cd to the previous directory
 
 BRANCH STATUS
-  digivice_prompt_info   add $(digivice_prompt_info) to your PROMPT to see
+  dev_vice_prompt_info   add $(dev_vice_prompt_info) to your PROMPT to see
                           ⬇ behind / ⬆ ahead / ⬍ diverged / ⟲ needs-rebase
                           icons - see the README for the one-line setup.
   (the first time a repo is found out of date, you're asked whether to
   auto-fetch it in the background from then on)
 
-UPDATING DIGIVICE ITSELF
-  digivice update   (or digivice-update) pull the latest digivice - you're
+UPDATING DEV-VICE ITSELF
+  dev-vice update   (or dev-vice-update) pull the latest dev-vice - you're
                      notified automatically at shell startup when one's
                      available
 
-Full details: https://github.com/epicseven-cup/digivice
+Full details: https://github.com/epicseven-cup/dev-vice
 EOF
 }
 
-digivice() {
+dev-vice() {
   case "$1" in
     update)
       shift
-      digivice-update "$@"
+      dev-vice-update "$@"
       ;;
     help|"")
-      digivice-help
+      dev-vice-help
       ;;
     *)
-      echo "digivice: unknown subcommand '$1' - try 'digivice help'" >&2
+      echo "dev-vice: unknown subcommand '$1' - try 'dev-vice help'" >&2
       return 1
       ;;
   esac

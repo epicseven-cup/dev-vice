@@ -1,46 +1,46 @@
-# digivice: minimal pure-zsh test helper (no external frameworks required)
+# dev-vice: minimal pure-zsh test helper (no external frameworks required)
 
-typeset -g DIGIVICE_TEST_PASS=0
-typeset -g DIGIVICE_TEST_FAIL=0
-typeset -g DIGIVICE_TEST_CURRENT=""
+typeset -g DEVVICE_TEST_PASS=0
+typeset -g DEVVICE_TEST_FAIL=0
+typeset -g DEVVICE_TEST_CURRENT=""
 
 assert_eq() {
   local expected="$1" actual="$2" msg="${3:-}"
   if [[ "$expected" == "$actual" ]]; then
-    ((DIGIVICE_TEST_PASS++))
+    ((DEVVICE_TEST_PASS++))
   else
-    ((DIGIVICE_TEST_FAIL++))
-    echo "  FAIL [$DIGIVICE_TEST_CURRENT]${msg:+ $msg}: expected '$expected', got '$actual'" >&2
+    ((DEVVICE_TEST_FAIL++))
+    echo "  FAIL [$DEVVICE_TEST_CURRENT]${msg:+ $msg}: expected '$expected', got '$actual'" >&2
   fi
 }
 
 assert_contains() {
   local haystack="$1" needle="$2" msg="${3:-}"
   if [[ "$haystack" == *"$needle"* ]]; then
-    ((DIGIVICE_TEST_PASS++))
+    ((DEVVICE_TEST_PASS++))
   else
-    ((DIGIVICE_TEST_FAIL++))
-    echo "  FAIL [$DIGIVICE_TEST_CURRENT]${msg:+ $msg}: expected '$haystack' to contain '$needle'" >&2
+    ((DEVVICE_TEST_FAIL++))
+    echo "  FAIL [$DEVVICE_TEST_CURRENT]${msg:+ $msg}: expected '$haystack' to contain '$needle'" >&2
   fi
 }
 
 assert_true() {
   local cond="$1" msg="${2:-}"
   if [[ "$cond" -eq 0 ]]; then
-    ((DIGIVICE_TEST_PASS++))
+    ((DEVVICE_TEST_PASS++))
   else
-    ((DIGIVICE_TEST_FAIL++))
-    echo "  FAIL [$DIGIVICE_TEST_CURRENT]${msg:+ $msg}: expected success exit code, got $cond" >&2
+    ((DEVVICE_TEST_FAIL++))
+    echo "  FAIL [$DEVVICE_TEST_CURRENT]${msg:+ $msg}: expected success exit code, got $cond" >&2
   fi
 }
 
 assert_false() {
   local cond="$1" msg="${2:-}"
   if [[ "$cond" -ne 0 ]]; then
-    ((DIGIVICE_TEST_PASS++))
+    ((DEVVICE_TEST_PASS++))
   else
-    ((DIGIVICE_TEST_FAIL++))
-    echo "  FAIL [$DIGIVICE_TEST_CURRENT]${msg:+ $msg}: expected non-zero exit code, got $cond" >&2
+    ((DEVVICE_TEST_FAIL++))
+    echo "  FAIL [$DEVVICE_TEST_CURRENT]${msg:+ $msg}: expected non-zero exit code, got $cond" >&2
   fi
 }
 
@@ -52,7 +52,7 @@ run_tests_in_file() {
   fns=(${(ok)functions[(I)test_*]})
   local fn
   for fn in "${fns[@]}"; do
-    DIGIVICE_TEST_CURRENT="$fn"
+    DEVVICE_TEST_CURRENT="$fn"
     "$fn"
     unfunction "$fn"
   done

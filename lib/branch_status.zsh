@@ -1,6 +1,6 @@
-# digivice: a prompt-embeddable branch-status indicator, in the same
+# dev-vice: a prompt-embeddable branch-status indicator, in the same
 # spirit as Oh My Zsh's git plugin's `git_prompt_info` - add
-# $(digivice_prompt_info) to your PROMPT/RPROMPT (requires
+# $(dev_vice_prompt_info) to your PROMPT/RPROMPT (requires
 # `setopt PROMPT_SUBST`, which Oh My Zsh enables by default) and it
 # shows a small colored icon next to your prompt whenever the current
 # branch is out of date, recomputed fresh on every prompt render:
@@ -13,7 +13,7 @@
 #             the branch has no upstream of its own
 #
 # Nothing is printed and no icon function needs to run when outside a
-# git repo, or when the branch is fully up to date - digivice_prompt_info
+# git repo, or when the branch is fully up to date - dev_vice_prompt_info
 # just returns an empty string.
 #
 # All of this only compares against whatever remote-tracking info is
@@ -23,30 +23,30 @@
 # repo per shell, not on every cd within it) can also kick off a
 # `git fetch --all` in the background. This is opt-in: the first time
 # a repo is found out of date and no preference has been recorded,
-# you're asked (only in an interactive terminal) whether digivice
+# you're asked (only in an interactive terminal) whether dev-vice
 # should keep that repo fresh automatically from then on. The answer
-# is remembered per-repo in .git/digivice_autofetch. If enabled, the
+# is remembered per-repo in .git/devvice_autofetch. If enabled, the
 # background fetch is throttled to at most once per repo per
-# DIGIVICE_FETCH_THROTTLE_SECONDS (default 5 minutes).
+# DEVVICE_FETCH_THROTTLE_SECONDS (default 5 minutes).
 
-typeset -g _DIGIVICE_LAST_GIT_TOPLEVEL=""
-typeset -g DIGIVICE_FETCH_THROTTLE_SECONDS=${DIGIVICE_FETCH_THROTTLE_SECONDS:-300}
+typeset -g _DEVVICE_LAST_GIT_TOPLEVEL=""
+typeset -g DEVVICE_FETCH_THROTTLE_SECONDS=${DEVVICE_FETCH_THROTTLE_SECONDS:-300}
 
-_digivice_autofetch_pref_file() {
-  echo "$1/.git/digivice_autofetch"
+_devvice_autofetch_pref_file() {
+  echo "$1/.git/devvice_autofetch"
 }
 
-_digivice_autofetch_enabled() {
-  local pref_file="$(_digivice_autofetch_pref_file "$1")"
+_devvice_autofetch_enabled() {
+  local pref_file="$(_devvice_autofetch_pref_file "$1")"
   [[ -f "$pref_file" && "$(<"$pref_file")" == "yes" ]]
 }
 
 # Ask (once, interactively only) whether to enable continuous
 # auto-fetch for this repo. Only called when the repo is already
 # known to be out of date, and only if no preference is saved.
-_digivice_maybe_prompt_autofetch() {
+_devvice_maybe_prompt_autofetch() {
   local toplevel="$1"
-  local pref_file="$(_digivice_autofetch_pref_file "$toplevel")"
+  local pref_file="$(_devvice_autofetch_pref_file "$toplevel")"
 
   [[ -f "$pref_file" ]] && return
   [[ -t 0 && -t 1 ]] || return
@@ -59,17 +59,17 @@ _digivice_maybe_prompt_autofetch() {
   echo
 }
 
-_digivice_maybe_background_fetch() {
+_devvice_maybe_background_fetch() {
   local toplevel="$1"
-  _digivice_autofetch_enabled "$toplevel" || return
+  _devvice_autofetch_enabled "$toplevel" || return
   git remote 2>/dev/null | read -r _ || return
 
-  local stamp_file="$toplevel/.git/digivice_last_fetch"
+  local stamp_file="$toplevel/.git/devvice_last_fetch"
   local now last=0
   now=$(date +%s)
   [[ -f "$stamp_file" ]] && last=$(<"$stamp_file")
 
-  if (( now - last < DIGIVICE_FETCH_THROTTLE_SECONDS )); then
+  if (( now - last < DEVVICE_FETCH_THROTTLE_SECONDS )); then
     return
   fi
   echo "$now" > "$stamp_file"
@@ -77,7 +77,7 @@ _digivice_maybe_background_fetch() {
 }
 
 # repo's base branch, e.g. "main" or "master" - same logic as gmain
-_digivice_base_branch() {
+_devvice_base_branch() {
   local base
   base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
   if [[ -z "$base" ]]; then
@@ -93,7 +93,7 @@ _digivice_base_branch() {
 # found, or if that base branch IS the upstream already compared
 # above). Local refs only - never fetches. Assumes the caller already
 # verified the cwd is inside a git repo.
-_digivice_branch_counts() {
+_devvice_branch_counts() {
   local branch
   branch=$(git symbolic-ref --short HEAD 2>/dev/null) || { echo "0 0 0"; return; }
 
@@ -110,7 +110,7 @@ _digivice_branch_counts() {
 
   local base_behind=0
   local base_branch
-  base_branch=$(_digivice_base_branch)
+  base_branch=$(_devvice_base_branch)
   if [[ -n "$base_branch" && "$branch" != "$base_branch" ]]; then
     local base_ref="origin/$base_branch"
     if [[ "$base_ref" != "$upstream" ]]; then
@@ -123,13 +123,13 @@ _digivice_branch_counts() {
 }
 
 # call this from your PROMPT/RPROMPT, e.g.:
-#   PROMPT='%~ $(digivice_prompt_info) %# '
+#   PROMPT='%~ $(dev_vice_prompt_info) %# '
 # (needs `setopt PROMPT_SUBST`, on by default under Oh My Zsh)
-digivice_prompt_info() {
+dev_vice_prompt_info() {
   git rev-parse --is-inside-work-tree &>/dev/null || return
 
   local behind ahead base_behind
-  read -r behind ahead base_behind <<<"$(_digivice_branch_counts)"
+  read -r behind ahead base_behind <<<"$(_devvice_branch_counts)"
 
   local out=""
   if (( behind > 0 && ahead > 0 )); then
@@ -148,29 +148,29 @@ digivice_prompt_info() {
   [[ -n "$out" ]] && print -n -- "$out"
 }
 
-_digivice_check_branch_status() {
+_devvice_check_branch_status() {
   local toplevel
   toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
 
   if [[ -z "$toplevel" ]]; then
-    _DIGIVICE_LAST_GIT_TOPLEVEL=""
+    _DEVVICE_LAST_GIT_TOPLEVEL=""
     return
   fi
 
-  if [[ "$toplevel" == "$_DIGIVICE_LAST_GIT_TOPLEVEL" ]]; then
+  if [[ "$toplevel" == "$_DEVVICE_LAST_GIT_TOPLEVEL" ]]; then
     return
   fi
-  _DIGIVICE_LAST_GIT_TOPLEVEL="$toplevel"
+  _DEVVICE_LAST_GIT_TOPLEVEL="$toplevel"
 
-  _digivice_maybe_background_fetch "$toplevel"
+  _devvice_maybe_background_fetch "$toplevel"
 
   local behind ahead base_behind
-  read -r behind ahead base_behind <<<"$(_digivice_branch_counts)"
+  read -r behind ahead base_behind <<<"$(_devvice_branch_counts)"
   if (( behind > 0 || base_behind > 0 )); then
-    _digivice_maybe_prompt_autofetch "$toplevel"
+    _devvice_maybe_prompt_autofetch "$toplevel"
   fi
 }
 
 autoload -Uz add-zsh-hook
-add-zsh-hook chpwd _digivice_check_branch_status
-_digivice_check_branch_status
+add-zsh-hook chpwd _devvice_check_branch_status
+_devvice_check_branch_status

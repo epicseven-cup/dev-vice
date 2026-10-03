@@ -1,4 +1,4 @@
-# digivice: docker
+# dev-vice: docker
 
 dps() { docker ps "$@" }
 dpsa() { docker ps -a "$@" }

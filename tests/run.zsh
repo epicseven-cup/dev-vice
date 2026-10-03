@@ -1,5 +1,5 @@
 #!/usr/bin/env zsh
-# digivice: test runner — runs every tests/*.test.zsh file with no external deps
+# dev-vice: test runner — runs every tests/*.test.zsh file with no external deps
 
 DIR="${0:A:h}"
 source "$DIR/test_helper.zsh"
@@ -13,8 +13,8 @@ for f in "${test_files[@]}"; do
 done
 
 echo
-echo "passed: $DIGIVICE_TEST_PASS, failed: $DIGIVICE_TEST_FAIL"
+echo "passed: $DEVVICE_TEST_PASS, failed: $DEVVICE_TEST_FAIL"
 
-if (( DIGIVICE_TEST_FAIL > 0 )); then
+if (( DEVVICE_TEST_FAIL > 0 )); then
   exit 1
 fi

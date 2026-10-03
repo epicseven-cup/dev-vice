@@ -1,4 +1,4 @@
-# digivice: git
+# dev-vice: git
 
 gs() { git status "$@" }
 ga() { git add "$@" }
@@ -7,7 +7,7 @@ gc() { git commit -v "$@" }
 
 # shorthand -> Conventional Commits (https://www.conventionalcommits.org/)
 # type, so `gcm ft: add x` becomes `git commit -m "feat: add x"`.
-typeset -gA DIGIVICE_COMMIT_TYPE_ALIASES=(
+typeset -gA DEVVICE_COMMIT_TYPE_ALIASES=(
   ft feat
   fx fix
   dc docs
@@ -21,18 +21,18 @@ typeset -gA DIGIVICE_COMMIT_TYPE_ALIASES=(
 )
 
 # expand a leading Conventional Commits shorthand type (see
-# DIGIVICE_COMMIT_TYPE_ALIASES) in a commit message. Handles an
+# DEVVICE_COMMIT_TYPE_ALIASES) in a commit message. Handles an
 # optional scope and/or breaking-change `!`, e.g. `ft(api)!: msg`
 # becomes `feat(api)!: msg`. A message that doesn't start with a
 # recognized (full or shorthand) type is passed through unchanged.
-_digivice_expand_commit_type() {
+_devvice_expand_commit_type() {
   local msg="$1"
   if [[ "$msg" == *:* ]]; then
     local prefix="${msg%%:*}"
     local rest="${msg#*:}"
     local type="${prefix%%[^[:alpha:]]*}"
     local suffix="${prefix#$type}"
-    local full="${DIGIVICE_COMMIT_TYPE_ALIASES[$type]}"
+    local full="${DEVVICE_COMMIT_TYPE_ALIASES[$type]}"
     if [[ -n "$full" ]]; then
       msg="${full}${suffix}:${rest}"
     fi
@@ -43,7 +43,7 @@ _digivice_expand_commit_type() {
 # git commit -m, with the shorthand expansion above applied.
 gcm() {
   local msg
-  msg="$(_digivice_expand_commit_type "$1")"
+  msg="$(_devvice_expand_commit_type "$1")"
   shift
   git commit -m "$msg" "$@"
 }
@@ -65,13 +65,13 @@ git() {
           out+=("$arg")
           shift
           if (( $# )); then
-            out+=("$(_digivice_expand_commit_type "$1")")
+            out+=("$(_devvice_expand_commit_type "$1")")
             shift
           fi
           continue
           ;;
         --message=*)
-          out+=("--message=$(_digivice_expand_commit_type "${arg#--message=}")")
+          out+=("--message=$(_devvice_expand_commit_type "${arg#--message=}")")
           shift
           continue
           ;;
@@ -79,7 +79,7 @@ git() {
           out+=("$arg")
           shift
           if (( $# )); then
-            out+=("$(_digivice_expand_commit_type "$1")")
+            out+=("$(_devvice_expand_commit_type "$1")")
             shift
           fi
           continue
@@ -113,7 +113,7 @@ gmain() {
     [[ -z "$branch" ]] && git show-ref --verify --quiet refs/heads/master && branch=master
   fi
   if [[ -z "$branch" ]]; then
-    echo "digivice: could not determine default branch" >&2
+    echo "dev-vice: could not determine default branch" >&2
     return 1
   fi
   git checkout "$branch"
@@ -135,7 +135,7 @@ gcanrebase() {
 
   if [[ -z "$target" ]]; then
     local base
-    base=$(_digivice_base_branch)
+    base=$(_devvice_base_branch)
     if [[ -z "$base" ]]; then
       echo "gcanrebase: could not determine the base branch - pass one explicitly: gcanrebase <ref>" >&2
       return 1

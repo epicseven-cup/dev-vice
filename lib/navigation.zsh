@@ -1,4 +1,4 @@
-# digivice: navigation
+# dev-vice: navigation
 
 alias ..='cd ..'
 alias ...='cd ../..'

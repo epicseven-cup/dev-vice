@@ -1,4 +1,4 @@
-# digivice: scaffold GitHub Actions workflows
+# dev-vice: scaffold GitHub Actions workflows
 
 # create .github/workflows/<name>.yml (default name: ci) from a
 # starter template picked by what's in the current project - node
@@ -17,11 +17,11 @@ ghwfnew() {
   mkdir -p "$dir"
 
   if [[ -f package.json ]]; then
-    _digivice_workflow_template_node > "$file"
+    _devvice_workflow_template_node > "$file"
   elif [[ -f requirements.txt || -f pyproject.toml ]]; then
-    _digivice_workflow_template_python > "$file"
+    _devvice_workflow_template_python > "$file"
   else
-    _digivice_workflow_template_generic > "$file"
+    _devvice_workflow_template_generic > "$file"
   fi
 
   echo "✅ created $file"
@@ -42,7 +42,7 @@ ghwfedit() {
   "${EDITOR:-vi}" ".github/workflows/$name.yml"
 }
 
-_digivice_workflow_template_node() {
+_devvice_workflow_template_node() {
   cat <<'EOF'
 name: CI
 
@@ -64,7 +64,7 @@ jobs:
 EOF
 }
 
-_digivice_workflow_template_python() {
+_devvice_workflow_template_python() {
   cat <<'EOF'
 name: CI
 
@@ -86,7 +86,7 @@ jobs:
 EOF
 }
 
-_digivice_workflow_template_generic() {
+_devvice_workflow_template_generic() {
   cat <<'EOF'
 name: CI
 
