@@ -82,7 +82,7 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 
 `gcm <message>` (and **plain `git commit -m`/`-am`/`--message=`**, since digivice wraps `git` itself) auto-expand a leading shorthand commit type:
 
-- Tab-complete it: `gcm <TAB>` suggests `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` with descriptions, colored cyan with a green header (needs a completion system — Oh My Zsh's is on by default).
+- Tab-complete it: `gcm <TAB>` **or** plain `git commit -m "<TAB>` (also `-am`, `--message`) suggests `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` with descriptions, colored cyan with a green header (needs a completion system — Oh My Zsh's is on by default). Keep typing to narrow the list, e.g. `"f<TAB>` → just `feat`/`fix`.
 - Or type the shorthand directly — it expands either way: `gcm 'ft: add x'` → commits as `feat: add x`. Shorthands: `ft`→feat, `fx`→fix, `dc`→docs, `sty`→style, `rf`→refactor, `pf`→perf, `ts`→test, `bd`→build, `ch`→chore, `rv`→revert. Scope and the breaking-change `!` are preserved: `gcm 'fx(core)!: fix x'` → `fix(core)!: fix x`.
 - A message already using a full type, or not matching any recognized type, passes through unchanged. Every other git subcommand is completely unaffected by the `git` wrapper — it only touches `commit`'s message argument.
 

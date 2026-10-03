@@ -41,14 +41,25 @@ _digivice_gcb_prefixes() {
 
 # completer for plain `git`: offers the same branch-prefix
 # suggestions as gcb for `git checkout -b <TAB>` (or `git switch -c
-# <TAB>`), and otherwise falls through to the normal `_git` completer
-# so every other git subcommand completes exactly as it always did.
+# <TAB>`), the same commit-type suggestions as gcm for
+# `git commit -m <TAB>` (also -am, --message, or any short flag
+# combo ending in m), and otherwise falls through to the normal
+# `_git` completer so every other git subcommand completes exactly
+# as it always did.
 _digivice_git() {
   local subcmd="${words[2]}" prevword="${words[CURRENT-1]}"
   if { [[ "$subcmd" == "checkout" && "$prevword" == "-b" ]] ||
        [[ "$subcmd" == "switch" && "$prevword" == "-c" ]]; }; then
     _digivice_gcb_prefixes
     return
+  fi
+  if [[ "$subcmd" == "commit" ]]; then
+    case "$prevword" in
+      -m|--message|-*m)
+        _digivice_gcm_types
+        return
+        ;;
+    esac
   fi
   (( $+functions[_git] )) && _git
 }
@@ -66,8 +77,9 @@ if (( $+functions[compdef] )); then
   # _digivice_git delegates those straight to the real _git).
   zstyle ':completion:*:*:(gcm|gcb):*' list-colors '=(#b)(*)=36'
   zstyle ':completion:*:*:(gcm|gcb):*:descriptions' format $'\e[32m-- %d --\e[0m'
-  # for plain `git`, scope value coloring to just the branch-prefixes
-  # tag so _git's own (delegated) completions keep their normal colors
-  zstyle ':completion:*:*:git:*:branch-prefixes' list-colors '=(#b)(*)=36'
+  # for plain `git`, scope value coloring to just our own tags
+  # (branch-prefixes, commit-types) so _git's own (delegated)
+  # completions keep their normal colors
+  zstyle ':completion:*:*:git:*:(branch-prefixes|commit-types)' list-colors '=(#b)(*)=36'
   zstyle ':completion:*:*:git:*:descriptions' format $'\e[32m-- %d --\e[0m'
 fi
