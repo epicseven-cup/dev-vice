@@ -4,18 +4,34 @@ An [Oh My Zsh](https://ohmyz.sh/) plugin with general dev productivity aliases a
 
 ## Installation
 
-Clone this repo into your Oh My Zsh custom plugins directory:
+Requires [Oh My Zsh](https://ohmyz.sh/). If you don't have it yet:
 
 ```sh
-git clone https://github.com/<your-username>/digivice.git \
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+This installs OMZ into `~/.oh-my-zsh` and writes a `~/.zshrc` with a `source $ZSH/oh-my-zsh.sh` line — that's what actually loads plugins, so everything below assumes it's already there.
+
+Clone this repo into your Oh My Zsh custom plugins directory. OMZ auto-loads any file under `$ZSH_CUSTOM/plugins/<name>/` named `<name>.plugin.zsh` (default `$ZSH_CUSTOM`: `~/.oh-my-zsh/custom`), which is exactly what `digivice.plugin.zsh` is:
+
+```sh
+git clone https://github.com/epicseven-cup/digivice.git \
   "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/digivice"
 ```
 
-Then add `digivice` to the `plugins=(...)` list in your `~/.zshrc`:
+Then find the `plugins=(...)` line OMZ's installer already put in `~/.zshrc`, and add `digivice` to it:
 
 ```sh
-plugins=(... digivice)
+plugins=(git digivice)
 ```
+
+(Optional) To see the branch-status icon (⬇/⬆/⬍/⟲, see [Branch status](#branch-status-prompt-indicator) below) in your prompt, add this line *after* `source $ZSH/oh-my-zsh.sh` in `~/.zshrc`:
+
+```sh
+PROMPT="${PROMPT}"'$(digivice_prompt_info) '
+```
+
+Everything else (aliases, tab completion, autofetch) works without this step — it only controls whether the icon is visible.
 
 Reload your shell:
 
