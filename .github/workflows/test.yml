@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
       - name: Configure git user (needed by gmain tests)
         run: |
           git config --global user.email "ci@example.com"

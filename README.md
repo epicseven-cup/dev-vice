@@ -30,9 +30,10 @@ digivice.plugin.zsh   # entry point, sources everything in lib/
 lib/
   navigation.zsh      # cd shortcuts
   branch_status.zsh    # out-of-date branch warnings (chpwd hook)
-  git.zsh              # git aliases + gmain
+  git.zsh              # git aliases + gmain + gcanrebase
   node.zsh             # npm/yarn/pnpm aliases + drun
   docker.zsh           # docker aliases + dsh
+  github.zsh           # GitHub Actions workflow scaffolding
 ```
 
 Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh` and `branch_status.zsh` are small/need to run unconditionally, so they're loaded eagerly.
@@ -69,6 +70,11 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 ### Docker
 - `dps`, `dpsa`, `dimg`, `dlog`, `dprune`
 - `dsh <container>` — exec a shell into a running container
+
+### GitHub Actions
+- `ghwfnew [name]` — create `.github/workflows/<name>.yml` (default name: `ci`) from a starter template picked by what's in the project: node (`package.json`), python (`requirements.txt`/`pyproject.toml`), or a generic placeholder otherwise. Refuses to overwrite an existing file.
+- `ghwfls` — list workflow files in `.github/workflows`
+- `ghwfedit <name>` — open a workflow file in `$EDITOR`
 
 ### Branch status
 Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date (checked once per repo per shell, not on every `cd` within it). The check itself is instant — it only compares against already-known remote-tracking info (same as `git status`), never fetching on its own. Two independent things are checked:

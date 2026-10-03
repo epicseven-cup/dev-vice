@@ -174,6 +174,80 @@ test_gcanrebase_errors_on_unknown_ref() {
   rm -rf "$tmp"
 }
 
+# --- github workflow scaffolding --------------------------------------------
+
+test_ghwfnew_creates_node_workflow() {
+  local tmp="$(mktemp -d)"
+  echo '{}' > "$tmp/package.json"
+  local out
+  out=$(_run "cd '$tmp' && ghwfnew")
+  assert_contains "$out" "created .github/workflows/ci.yml" "should report the file it created"
+  assert_contains "$(<"$tmp/.github/workflows/ci.yml")" "setup-node" "a package.json should select the node template"
+  rm -rf "$tmp"
+}
+
+test_ghwfnew_creates_python_workflow() {
+  local tmp="$(mktemp -d)"
+  echo 'flask' > "$tmp/requirements.txt"
+  _run "cd '$tmp' && ghwfnew" >/dev/null
+  assert_contains "$(<"$tmp/.github/workflows/ci.yml")" "setup-python" "a requirements.txt should select the python template"
+  rm -rf "$tmp"
+}
+
+test_ghwfnew_creates_generic_workflow_otherwise() {
+  local tmp="$(mktemp -d)"
+  _run "cd '$tmp' && ghwfnew myci" >/dev/null
+  assert_contains "$(<"$tmp/.github/workflows/myci.yml")" "add your build/test commands here" "no recognized project files should fall back to the generic template"
+  rm -rf "$tmp"
+}
+
+test_ghwfnew_refuses_to_overwrite_existing_file() {
+  local tmp="$(mktemp -d)"
+  mkdir -p "$tmp/.github/workflows"
+  echo "existing content" > "$tmp/.github/workflows/ci.yml"
+  local out
+  out=$(_run "cd '$tmp' && ghwfnew" 2>&1); local rc=$?
+  assert_contains "$out" "already exists" "ghwfnew should refuse to overwrite an existing workflow file"
+  assert_false "$rc" "ghwfnew should exit non-zero when the file already exists"
+  assert_eq "existing content" "$(<"$tmp/.github/workflows/ci.yml")" "the existing file should be left untouched"
+  rm -rf "$tmp"
+}
+
+test_ghwfls_lists_workflow_files() {
+  local tmp="$(mktemp -d)"
+  mkdir -p "$tmp/.github/workflows"
+  touch "$tmp/.github/workflows/ci.yml" "$tmp/.github/workflows/lint.yml"
+  local out
+  out=$(_run "cd '$tmp' && ghwfls")
+  assert_contains "$out" "ci.yml" "ghwfls should list existing workflow files"
+  assert_contains "$out" "lint.yml" "ghwfls should list existing workflow files"
+  rm -rf "$tmp"
+}
+
+test_ghwfls_errors_without_workflows_directory() {
+  local tmp="$(mktemp -d)"
+  local out
+  out=$(_run "cd '$tmp' && ghwfls" 2>&1)
+  assert_contains "$out" "no .github/workflows directory" "ghwfls should error when there's no workflows directory"
+  rm -rf "$tmp"
+}
+
+test_ghwfedit_opens_the_workflow_file_in_editor() {
+  local tmp="$(mktemp -d)"
+  mkdir -p "$tmp/.github/workflows"
+  touch "$tmp/.github/workflows/ci.yml"
+  local fakebin="$(mktemp -d)"
+  cat > "$fakebin/fakeeditor" <<'EOF'
+#!/bin/sh
+echo "opened: $1"
+EOF
+  chmod +x "$fakebin/fakeeditor"
+  local out
+  out=$(_run "export EDITOR='$fakebin/fakeeditor' && cd '$tmp' && ghwfedit ci")
+  assert_eq "opened: .github/workflows/ci.yml" "$out" "ghwfedit should invoke \$EDITOR with the workflow file's path"
+  rm -rf "$tmp" "$fakebin"
+}
+
 test_dsh_requires_an_argument() {
   local out
   out=$(_run "dsh" 2>&1)
