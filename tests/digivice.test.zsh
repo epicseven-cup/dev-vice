@@ -46,21 +46,30 @@ test_git_command_starts_as_stub() {
 }
 
 test_git_command_loads_real_function_on_first_call() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
   local out
-  out=$(_run "cd '$DIGIVICE_PROJECT_ROOT' && gs >/dev/null; type gs")
+  out=$(_run "cd '$tmp' && gs >/dev/null; type gs")
   assert_contains "$out" "lib/git.zsh" "gs should be the real function after being called once"
+  rm -rf "$tmp"
 }
 
 test_loading_one_git_command_upgrades_the_whole_module() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
   local out
-  out=$(_run "cd '$DIGIVICE_PROJECT_ROOT' && gs >/dev/null; type gmain")
+  out=$(_run "cd '$tmp' && gs >/dev/null; type gmain")
   assert_contains "$out" "lib/git.zsh" "calling gs should also resolve gmain's stub (same module)"
+  rm -rf "$tmp"
 }
 
 test_unrelated_modules_stay_lazy() {
+  local tmp="$(mktemp -d)"
+  git init -q "$tmp"
   local out
-  out=$(_run "cd '$DIGIVICE_PROJECT_ROOT' && gs >/dev/null; type drun")
+  out=$(_run "cd '$tmp' && gs >/dev/null; type drun")
   assert_contains "$out" "digivice.plugin.zsh" "drun (node module) should remain a stub after a git command runs"
+  rm -rf "$tmp"
 }
 
 test_gmain_fails_without_main_or_master_branch() {
