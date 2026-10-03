@@ -637,6 +637,38 @@ test_digivice_update_errors_outside_a_git_repo() {
   rm -rf "$plain"
 }
 
+# --- digivice help/dispatch command -----------------------------------
+
+test_digivice_bare_shows_help() {
+  local out
+  out=$(_run "digivice")
+  assert_contains "$out" "zsh dev productivity plugin" "bare 'digivice' should print the help text"
+  assert_contains "$out" "gcanrebase" "help text should mention commands"
+}
+
+test_digivice_help_shows_help() {
+  local out
+  out=$(_run "digivice help")
+  assert_contains "$out" "zsh dev productivity plugin" "'digivice help' should print the same help text"
+}
+
+test_digivice_unknown_subcommand_errors() {
+  local out
+  out=$(_run "digivice bogus" 2>&1); local rc=$?
+  assert_contains "$out" "unknown subcommand 'bogus'" "an unrecognized subcommand should error with guidance"
+  assert_false "$rc" "an unrecognized subcommand should exit non-zero"
+}
+
+test_digivice_update_shortcut_delegates_to_digivice_update() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  _seed_self_update_fixture "$bare" "$work" "$other"
+  local out
+  out=$(zsh -c "source '$work/digivice.plugin.zsh'; digivice update" < /dev/null 2>&1)
+  assert_contains "$out" "digivice updated" "'digivice update' should delegate to digivice-update"
+  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "'digivice update' should actually pull the new content"
+  rm -rf "$bare" "$work" "$other"
+}
+
 test_drun_prefers_pnpm_lockfile() {
   local tmp="$(mktemp -d)"
   touch "$tmp/pnpm-lock.yaml"

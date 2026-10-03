@@ -23,6 +23,10 @@ source "$DIGIVICE_DIR/lib/completions.zsh"
 # self-update check needs to run once at shell startup, not lazily
 source "$DIGIVICE_DIR/lib/self_update.zsh"
 
+# the `digivice` help/dispatch command is cheap and should always be
+# available immediately, so it's eager too
+source "$DIGIVICE_DIR/lib/help.zsh"
+
 typeset -gA DIGIVICE_MODULE_CMDS
 DIGIVICE_MODULE_CMDS=(
   git    "git gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain gcanrebase"
