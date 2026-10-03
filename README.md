@@ -39,15 +39,11 @@ Reload your shell:
 source ~/.zshrc
 ```
 
+Then just run `digivice` any time — it's the one command to remember, and it prints a full cheat-sheet of everything below.
+
 ### Updating
 
-Once installed, just run:
-
-```sh
-digivice-update
-```
-
-This pulls the latest changes (fast-forward only) into the plugin's own clone, then restart your shell (`exec zsh`) to pick them up. You don't have to remember to do this yourself, either — see [Self-update suggestion](#self-update-suggestion) below.
+Run `digivice update` (or `digivice-update`) to pull the latest changes (fast-forward only), then restart your shell (`exec zsh`) to pick them up. You don't have to remember to do this yourself, either — see [Self-update suggestion](#self-update-suggestion) below.
 
 ## Structure
 
@@ -58,6 +54,7 @@ lib/
   branch_status.zsh    # digivice_prompt_info + autofetch (chpwd hook)
   completions.zsh      # tab completion for gcm/gcb/git (compdef)
   self_update.zsh      # digivice-update + startup self-update suggestion
+  help.zsh             # the `digivice` command (cheat-sheet + dispatch)
   git.zsh              # git aliases + gmain + gcanrebase + gcm shorthand + git wrapper
   node.zsh             # npm/yarn/pnpm aliases + drun
   docker.zsh           # docker aliases + dsh
@@ -79,6 +76,10 @@ zsh tests/run.zsh
 Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new `tests/*.test.zsh` file — the runner picks them up automatically).
 
 ## What's included
+
+### `digivice` — the cheat-sheet
+- `digivice` (or `digivice help`) — prints every command below, grouped by category. The one thing to remember if you forget everything else here.
+- `digivice update` — shortcut for `digivice-update` (see [Self-update suggestion](#self-update-suggestion)).
 
 ### Navigation
 - `..`, `...`, `....` — go up 1/2/3 directories
