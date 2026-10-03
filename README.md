@@ -29,7 +29,7 @@ source ~/.zshrc
 digivice.plugin.zsh   # entry point, sources everything in lib/
 lib/
   navigation.zsh      # cd shortcuts
-  branch_status.zsh    # out-of-date branch warnings (chpwd hook)
+  branch_status.zsh    # digivice_prompt_info + autofetch (chpwd hook)
   completions.zsh      # tab completion for gcm/gcb/git (compdef)
   git.zsh              # git aliases + gmain + gcanrebase + gcm shorthand + git wrapper
   node.zsh             # npm/yarn/pnpm aliases + drun
@@ -99,10 +99,23 @@ e.g. `gcb <TAB>` or `git checkout -b <TAB>` lists these (cyan, green header); pi
 - `ghwfls` — list workflow files in `.github/workflows`
 - `ghwfedit <name>` — open a workflow file in `$EDITOR`
 
-### Branch status
-Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date (checked once per repo per shell, not on every `cd` within it). The check itself is instant — it only compares against already-known remote-tracking info (same as `git status`), never fetching on its own. Two independent things are checked:
+### Branch status (prompt indicator)
+Like Oh My Zsh's `git` plugin's `git_prompt_info`, digivice provides `digivice_prompt_info` — a small colored icon you add to your own prompt, not a printed message. Add it to `~/.zshrc` **after** `source $ZSH/oh-my-zsh.sh`:
 
-- **vs. its own upstream** (`@{upstream}`) — behind, ahead, or diverged, e.g. `⚠️  'main' is behind 'origin/main' by 3 commit(s) - run gpl to update`
-- **vs. the repo's base branch** (`origin/main`/`origin/master`) — flags a feature branch that needs a rebase even if it has no upstream of its own, e.g. `🔀 'my-feature' is 5 commit(s) behind 'origin/main' - run gcanrebase to check if it's safe to rebase onto main`. Run `gcanrebase` to actually check (see Git section above) before you rebase for real.
+```sh
+setopt PROMPT_SUBST   # Oh My Zsh enables this by default
+PROMPT="${PROMPT}"'$(digivice_prompt_info) '
+```
 
-Auto-fetching is **opt-in**: the first time a repo is found to be out of date and no preference has been recorded, you're asked (only in an interactive terminal) whether digivice should keep that repo's remote-tracking info fresh automatically from then on. Your answer is remembered per-repo in `.git/digivice_autofetch`. If enabled, repo entry kicks off a non-blocking `git fetch --all` in the background, throttled to once per repo per `DIGIVICE_FETCH_THROTTLE_SECONDS` (default 300 = 5 minutes; set this variable before the plugin loads to change it). If declined (or never asked, e.g. in a script), nothing is fetched automatically and you keep using `gpl`/`gp` manually.
+(or splice it into `RPROMPT`, or into a custom theme's `PROMPT` definition — anywhere command substitution runs on every render.) It's recomputed fresh every time the prompt draws, using only already-known local git info (same as `git status` — never fetches on its own, so it's instant):
+
+| Icon | Meaning |
+|---|---|
+| `⬇3` (yellow) | behind its own upstream by 3 commits — `gpl` to update |
+| `⬆2` (green) | ahead of its own upstream by 2 commits — `gp` to push |
+| `⬍1/2` (red) | diverged from its own upstream (behind 1, ahead 2) |
+| `⟲5` (cyan) | behind the repo's base branch (e.g. `origin/main`) by 5 commits, even if this branch has no upstream of its own — run `gcanrebase` to check if rebasing would be clean |
+
+Nothing is shown outside a git repo or when the branch is fully up to date.
+
+Auto-fetching is **opt-in**: the first time a repo is found out of date (on `cd` into it, checked once per repo per shell) and no preference has been recorded, you're asked (only in an interactive terminal) whether digivice should keep that repo's remote-tracking info fresh automatically from then on — since the icons above only reflect whatever's already locally known. Your answer is remembered per-repo in `.git/digivice_autofetch`. If enabled, repo entry kicks off a non-blocking `git fetch --all` in the background, throttled to once per repo per `DIGIVICE_FETCH_THROTTLE_SECONDS` (default 300 = 5 minutes; set this variable before the plugin loads to change it). If declined (or never asked, e.g. in a script), nothing is fetched automatically and you keep using `gpl`/`gp` manually.

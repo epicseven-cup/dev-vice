@@ -1,24 +1,32 @@
-# digivice: warn in the terminal when the current repo's branch is
-# out of date. Runs once per repo (on cd into it, or at shell startup
-# if already inside one) - not on every cd within the same repo.
+# digivice: a prompt-embeddable branch-status indicator, in the same
+# spirit as Oh My Zsh's git plugin's `git_prompt_info` - add
+# $(digivice_prompt_info) to your PROMPT/RPROMPT (requires
+# `setopt PROMPT_SUBST`, which Oh My Zsh enables by default) and it
+# shows a small colored icon next to your prompt whenever the current
+# branch is out of date, recomputed fresh on every prompt render:
 #
-# Two independent checks:
-#   1. current branch vs its own upstream (@{upstream}) - behind/
-#      ahead/diverged.
-#   2. current branch vs the repo's base branch (origin/main or
-#      origin/master) - flags when a feature branch has fallen behind
-#      main and should probably be rebased, regardless of whether it
-#      has its own upstream configured.
+#   ⬇3        behind its own upstream by 3 commits
+#   ⬆2        ahead of its own upstream by 2 commits
+#   ⬍1/2      diverged from its own upstream (behind 1, ahead 2)
+#   ⟲5        behind the repo's base branch (e.g. origin/main) by 5
+#             commits and should probably be rebased - shown even if
+#             the branch has no upstream of its own
 #
-# Both checks only compare against whatever remote-tracking info is
-# already known locally (same as `git status`) - they never fetch.
-# Auto-fetching is opt-in: the first time a repo is found to be behind
-# and no preference has been recorded yet, the user is asked (only in
-# an interactive terminal) whether digivice should keep that repo's
-# remote-tracking info fresh automatically from now on. The answer is
-# remembered per-repo in .git/digivice_autofetch. If enabled, repo
-# entry kicks off a `git fetch --all` in the background (non-
-# blocking), throttled to at most once per repo per
+# Nothing is printed and no icon function needs to run when outside a
+# git repo, or when the branch is fully up to date - digivice_prompt_info
+# just returns an empty string.
+#
+# All of this only compares against whatever remote-tracking info is
+# already known locally (same as `git status`) - it never fetches on
+# its own, so it's instant. To keep that from going stale, entering a
+# repo (on cd, or at shell startup if already inside one - once per
+# repo per shell, not on every cd within it) can also kick off a
+# `git fetch --all` in the background. This is opt-in: the first time
+# a repo is found out of date and no preference has been recorded,
+# you're asked (only in an interactive terminal) whether digivice
+# should keep that repo fresh automatically from then on. The answer
+# is remembered per-repo in .git/digivice_autofetch. If enabled, the
+# background fetch is throttled to at most once per repo per
 # DIGIVICE_FETCH_THROTTLE_SECONDS (default 5 minutes).
 
 typeset -g _DIGIVICE_LAST_GIT_TOPLEVEL=""
@@ -34,8 +42,8 @@ _digivice_autofetch_enabled() {
 }
 
 # Ask (once, interactively only) whether to enable continuous
-# auto-fetch for this repo. Only called after we've already shown the
-# user a "you're behind" warning, and only if no preference is saved.
+# auto-fetch for this repo. Only called when the repo is already
+# known to be out of date, and only if no preference is saved.
 _digivice_maybe_prompt_autofetch() {
   local toplevel="$1"
   local pref_file="$(_digivice_autofetch_pref_file "$toplevel")"
@@ -79,6 +87,67 @@ _digivice_base_branch() {
   echo "$base"
 }
 
+# echoes "<behind> <ahead> <base_behind>" for the current branch -
+# <behind>/<ahead> relative to its own @{upstream} (0/0 if it has
+# none), <base_behind> relative to the repo's base branch (0 if none
+# found, or if that base branch IS the upstream already compared
+# above). Local refs only - never fetches. Assumes the caller already
+# verified the cwd is inside a git repo.
+_digivice_branch_counts() {
+  local branch
+  branch=$(git symbolic-ref --short HEAD 2>/dev/null) || { echo "0 0 0"; return; }
+
+  local upstream behind=0 ahead=0
+  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)
+  if [[ -n "$upstream" ]]; then
+    local counts
+    counts=$(git rev-list --left-right --count "${upstream}...${branch}" 2>/dev/null)
+    if [[ -n "$counts" ]]; then
+      behind="${counts%%$'\t'*}"
+      ahead="${counts##*$'\t'}"
+    fi
+  fi
+
+  local base_behind=0
+  local base_branch
+  base_branch=$(_digivice_base_branch)
+  if [[ -n "$base_branch" && "$branch" != "$base_branch" ]]; then
+    local base_ref="origin/$base_branch"
+    if [[ "$base_ref" != "$upstream" ]]; then
+      base_behind=$(git rev-list --count "${branch}..${base_ref}" 2>/dev/null)
+      [[ -z "$base_behind" ]] && base_behind=0
+    fi
+  fi
+
+  echo "$behind $ahead $base_behind"
+}
+
+# call this from your PROMPT/RPROMPT, e.g.:
+#   PROMPT='%~ $(digivice_prompt_info) %# '
+# (needs `setopt PROMPT_SUBST`, on by default under Oh My Zsh)
+digivice_prompt_info() {
+  git rev-parse --is-inside-work-tree &>/dev/null || return
+
+  local behind ahead base_behind
+  read -r behind ahead base_behind <<<"$(_digivice_branch_counts)"
+
+  local out=""
+  if (( behind > 0 && ahead > 0 )); then
+    out="%F{red}⬍${behind}/${ahead}%f"
+  elif (( behind > 0 )); then
+    out="%F{yellow}⬇${behind}%f"
+  elif (( ahead > 0 )); then
+    out="%F{green}⬆${ahead}%f"
+  fi
+
+  if (( base_behind > 0 )); then
+    [[ -n "$out" ]] && out+=" "
+    out+="%F{cyan}⟲${base_behind}%f"
+  fi
+
+  [[ -n "$out" ]] && print -n -- "$out"
+}
+
 _digivice_check_branch_status() {
   local toplevel
   toplevel=$(git rev-parse --show-toplevel 2>/dev/null)
@@ -95,47 +164,9 @@ _digivice_check_branch_status() {
 
   _digivice_maybe_background_fetch "$toplevel"
 
-  local branch
-  branch=$(git symbolic-ref --short HEAD 2>/dev/null) || return
-
-  local is_out_of_date=0
-  local upstream
-  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)
-
-  if [[ -n "$upstream" ]]; then
-    local counts behind ahead
-    counts=$(git rev-list --left-right --count "${upstream}...${branch}" 2>/dev/null)
-    if [[ -n "$counts" ]]; then
-      behind="${counts%%$'\t'*}"
-      ahead="${counts##*$'\t'}"
-
-      if [[ "$behind" -gt 0 && "$ahead" -gt 0 ]]; then
-        echo "🔀 '$branch' has diverged from '$upstream' (ahead $ahead, behind $behind) - run gcanrebase to check if 'gpl --rebase' would be clean" >&2
-        is_out_of_date=1
-      elif [[ "$behind" -gt 0 ]]; then
-        echo "⚠️  '$branch' is behind '$upstream' by $behind commit(s) - run gpl to update" >&2
-        is_out_of_date=1
-      elif [[ "$ahead" -gt 0 ]]; then
-        echo "⬆️  '$branch' is ahead of '$upstream' by $ahead commit(s) - run gp to push" >&2
-      fi
-    fi
-  fi
-
-  local base_branch
-  base_branch=$(_digivice_base_branch)
-  if [[ -n "$base_branch" && "$branch" != "$base_branch" ]]; then
-    local base_ref="origin/$base_branch"
-    if [[ "$base_ref" != "$upstream" ]]; then
-      local base_behind
-      base_behind=$(git rev-list --count "${branch}..${base_ref}" 2>/dev/null)
-      if [[ -n "$base_behind" && "$base_behind" -gt 0 ]]; then
-        echo "🔀 '$branch' is $base_behind commit(s) behind '$base_ref' - run gcanrebase to check if it's safe to rebase onto $base_branch" >&2
-        is_out_of_date=1
-      fi
-    fi
-  fi
-
-  if [[ "$is_out_of_date" -eq 1 ]]; then
+  local behind ahead base_behind
+  read -r behind ahead base_behind <<<"$(_digivice_branch_counts)"
+  if (( behind > 0 || base_behind > 0 )); then
     _digivice_maybe_prompt_autofetch "$toplevel"
   fi
 }
