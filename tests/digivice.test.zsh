@@ -170,7 +170,7 @@ test_gcm_all_documented_shorthands_expand_correctly() {
 
 test_gcm_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcm]:-NOT-REGISTERED}" < /dev/null)
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcm]:-NOT-REGISTERED}" < /dev/null)
   assert_eq "_digivice_gcm_types" "$out" "gcm's completion function should register via compdef when compinit is active"
 }
 
@@ -182,13 +182,13 @@ test_gcm_completion_setup_is_a_noop_without_compinit() {
 
 test_gcb_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcb]:-NOT-REGISTERED}" < /dev/null)
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[gcb]:-NOT-REGISTERED}" < /dev/null)
   assert_eq "_digivice_gcb_prefixes" "$out" "gcb's completion function should register via compdef when compinit is active"
 }
 
 test_git_completion_registers_with_compdef_when_available() {
   local out
-  out=$(zsh -c "autoload -Uz compinit && compinit -D 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[git]:-NOT-REGISTERED}" < /dev/null)
+  out=$(zsh -c "autoload -Uz compinit && compinit -u 2>/dev/null; source '$DIGIVICE_PLUGIN'; echo \${_comps[git]:-NOT-REGISTERED}" < /dev/null)
   assert_eq "_digivice_git" "$out" "git's completion function should register via compdef when compinit is active"
 }
 
