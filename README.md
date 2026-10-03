@@ -70,4 +70,4 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 - `dsh <container>` — exec a shell into a running container
 
 ### Branch status
-Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date relative to its upstream (behind, ahead, or diverged) — e.g. `digivice: 'main' is behind 'origin/main' by 3 commit(s) - run gpl to update`. It only compares against already-known remote-tracking info (same as `git status`) — it never runs `git fetch` itself — and only checks once per repo (not on every `cd` within the same repo).
+Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date relative to its upstream (behind, ahead, or diverged) — e.g. `⚠️  'main' is behind 'origin/main' by 3 commit(s) - run gpl to update`. It only compares against already-known remote-tracking info (same as `git status`) — it never runs `git fetch` itself — and only checks once per repo (not on every `cd` within the same repo).

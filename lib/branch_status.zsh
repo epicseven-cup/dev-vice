@@ -31,11 +31,11 @@ _digivice_check_branch_status() {
   ahead="${counts##*$'\t'}"
 
   if [[ "$behind" -gt 0 && "$ahead" -gt 0 ]]; then
-    echo "digivice: '$branch' has diverged from '$upstream' (ahead $ahead, behind $behind) - consider gpl --rebase" >&2
+    echo "🔀 '$branch' has diverged from '$upstream' (ahead $ahead, behind $behind) - consider gpl --rebase" >&2
   elif [[ "$behind" -gt 0 ]]; then
-    echo "digivice: '$branch' is behind '$upstream' by $behind commit(s) - run gpl to update" >&2
+    echo "⚠️  '$branch' is behind '$upstream' by $behind commit(s) - run gpl to update" >&2
   elif [[ "$ahead" -gt 0 ]]; then
-    echo "digivice: '$branch' is ahead of '$upstream' by $ahead commit(s) - run gp to push" >&2
+    echo "⬆️  '$branch' is ahead of '$upstream' by $ahead commit(s) - run gp to push" >&2
   fi
 }
 
