@@ -96,6 +96,15 @@ test_gmain_checks_out_main() {
   rm -rf "$tmp"
 }
 
+test_gcb_creates_and_checks_out_new_branch() {
+  local tmp="$(mktemp -d)"
+  (cd "$tmp" && git init -q -b main . && git -c user.email=t@t.com -c user.name=t commit -q --allow-empty -m init)
+  local out
+  out=$(_run "cd '$tmp' && gcb feature/new-thing >/dev/null 2>&1; git branch --show-current")
+  assert_eq "feature/new-thing" "$out" "gcb should create and check out the new branch"
+  rm -rf "$tmp"
+}
+
 # --- gcm Conventional Commits shorthand -------------------------------------
 
 test_gcm_expands_shorthand_type() {
@@ -141,6 +150,22 @@ test_gcm_leaves_plain_message_unchanged() {
   out=$(_run "cd '$tmp' && touch a && git add a && gcm 'just a message' >/dev/null && git log -1 --format=%s")
   assert_eq "just a message" "$out" "a message with no colon should pass through unchanged"
   rm -rf "$tmp"
+}
+
+test_gcm_all_documented_shorthands_expand_correctly() {
+  # exercises every entry in DIGIVICE_COMMIT_TYPE_ALIASES directly
+  # (no git commit needed) - catches a typo in the table itself, not
+  # just the one or two shorthands spot-checked above.
+  local pairs="ft:feat fx:fix dc:docs sty:style rf:refactor pf:perf ts:test bd:build ch:chore rv:revert"
+  local pair short full out
+  for pair in ${=pairs}; do
+    short="${pair%%:*}"
+    full="${pair#*:}"
+    # `gs 2>/dev/null` just forces git.zsh to load (defining
+    # _digivice_expand_commit_type) before calling it directly
+    out=$(_run "gs >/dev/null 2>&1; _digivice_expand_commit_type '${short}: msg'")
+    assert_eq "${full}: msg" "$out" "shorthand '$short' should expand to '$full'"
+  done
 }
 
 test_gcm_completion_registers_with_compdef_when_available() {
