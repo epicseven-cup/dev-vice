@@ -29,12 +29,13 @@ source ~/.zshrc
 digivice.plugin.zsh   # entry point, sources everything in lib/
 lib/
   navigation.zsh      # cd shortcuts
+  branch_status.zsh    # out-of-date branch warnings (chpwd hook)
   git.zsh              # git aliases + gmain
   node.zsh             # npm/yarn/pnpm aliases + drun
   docker.zsh           # docker aliases + dsh
 ```
 
-Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh` is small enough that it's loaded eagerly.
+Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh` and `branch_status.zsh` are small/need to run unconditionally, so they're loaded eagerly.
 
 To add your own lazy-loaded shortcuts: add a `*.zsh` file to `lib/` and register its command names in the `DIGIVICE_MODULE_CMDS` map in `digivice.plugin.zsh`.
 
@@ -67,3 +68,6 @@ Add new test cases as `test_*` functions in `tests/digivice.test.zsh` (or a new 
 ### Docker
 - `dps`, `dpsa`, `dimg`, `dlog`, `dprune`
 - `dsh <container>` — exec a shell into a running container
+
+### Branch status
+Automatically prints a one-line warning to the terminal when `cd`-ing into a git repo whose current branch is out of date relative to its upstream (behind, ahead, or diverged) — e.g. `digivice: 'main' is behind 'origin/main' by 3 commit(s) - run gpl to update`. It only compares against already-known remote-tracking info (same as `git status`) — it never runs `git fetch` itself — and only checks once per repo (not on every `cd` within the same repo).

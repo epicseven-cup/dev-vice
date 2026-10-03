@@ -12,6 +12,10 @@ DIGIVICE_DIR=${0:A:h}
 # navigation is just a handful of trivial aliases - load eagerly
 source "$DIGIVICE_DIR/lib/navigation.zsh"
 
+# branch-status warnings need to run on every `cd` (via a chpwd hook),
+# so this can't be lazy-loaded like the command modules below
+source "$DIGIVICE_DIR/lib/branch_status.zsh"
+
 typeset -gA DIGIVICE_MODULE_CMDS
 DIGIVICE_MODULE_CMDS=(
   git    "gs ga gaa gc gcm gco gcb gb gp gpl gl gd gds gst gstp gmain"
