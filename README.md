@@ -39,6 +39,16 @@ Reload your shell:
 source ~/.zshrc
 ```
 
+### Updating
+
+Once installed, just run:
+
+```sh
+digivice-update
+```
+
+This pulls the latest changes (fast-forward only) into the plugin's own clone, then restart your shell (`exec zsh`) to pick them up. You don't have to remember to do this yourself, either — see [Self-update suggestion](#self-update-suggestion) below.
+
 ## Structure
 
 ```
@@ -47,13 +57,14 @@ lib/
   navigation.zsh      # cd shortcuts
   branch_status.zsh    # digivice_prompt_info + autofetch (chpwd hook)
   completions.zsh      # tab completion for gcm/gcb/git (compdef)
+  self_update.zsh      # digivice-update + startup self-update suggestion
   git.zsh              # git aliases + gmain + gcanrebase + gcm shorthand + git wrapper
   node.zsh             # npm/yarn/pnpm aliases + drun
   docker.zsh           # docker aliases + dsh
   github.zsh           # GitHub Actions workflow scaffolding
 ```
 
-Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh`, `branch_status.zsh`, and `completions.zsh` need to run unconditionally (hooks/completion registration must be set up before the commands they target are ever called), so they're loaded eagerly.
+Commands are lazy-loaded: `git.zsh`, `node.zsh`, and `docker.zsh` are not sourced at shell startup. Instead each command they provide (`gs`, `drun`, `dsh`, etc.) is registered as a lightweight stub. The first time you actually run one, its module is sourced (defining every real function in that module) and the call is passed through — later calls hit the real function directly, with no extra `source` cost. `navigation.zsh`, `branch_status.zsh`, `completions.zsh`, and `self_update.zsh` need to run unconditionally at shell startup (hooks/completion registration, and the one-time update check), so they're loaded eagerly.
 
 To add your own lazy-loaded shortcuts: add a `*.zsh` file to `lib/` and register its command names in the `DIGIVICE_MODULE_CMDS` map in `digivice.plugin.zsh`.
 
@@ -135,3 +146,13 @@ PROMPT="${PROMPT}"'$(digivice_prompt_info) '
 Nothing is shown outside a git repo or when the branch is fully up to date.
 
 Auto-fetching is **opt-in**: the first time a repo is found out of date (on `cd` into it, checked once per repo per shell) and no preference has been recorded, you're asked (only in an interactive terminal) whether digivice should keep that repo's remote-tracking info fresh automatically from then on — since the icons above only reflect whatever's already locally known. Your answer is remembered per-repo in `.git/digivice_autofetch`. If enabled, repo entry kicks off a non-blocking `git fetch --all` in the background, throttled to once per repo per `DIGIVICE_FETCH_THROTTLE_SECONDS` (default 300 = 5 minutes; set this variable before the plugin loads to change it). If declined (or never asked, e.g. in a script), nothing is fetched automatically and you keep using `gpl`/`gp` manually.
+
+### Self-update suggestion
+
+Unlike your own projects, digivice's own clone (wherever you installed it under `$ZSH_CUSTOM/plugins/digivice`) is checked for updates automatically and unconditionally — there's no opt-in prompt, since there's nothing project-sensitive about fetching digivice's own public repo. At shell startup (once, not on every `cd`):
+
+- It compares the plugin's own clone against its origin, using only already-known local info — instant, same as everything else above.
+- If behind, it prints a one-line suggestion: `💡 digivice: 2 update(s) available - run 'digivice-update' to get them`.
+- It also kicks off a throttled, non-blocking `git fetch` of its own repo (default: once per day — `DIGIVICE_SELF_FETCH_THROTTLE_SECONDS`) so that comparison stays reasonably fresh over time without ever fetching on every single shell start.
+
+Run `digivice-update` to actually pull the changes (fast-forward only), then `exec zsh` to reload with them. To turn the check off entirely, set `DIGIVICE_SELF_UPDATE_CHECK=0` before the plugin loads (e.g. in `~/.zshrc`, before the `plugins=(...)` line takes effect).

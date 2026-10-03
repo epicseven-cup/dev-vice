@@ -565,6 +565,78 @@ test_prompt_info_does_not_duplicate_when_upstream_is_base_branch() {
   rm -rf "$bare" "$work" "$other"
 }
 
+# --- self-update -------------------------------------------------------
+
+# builds bare + two clones ($work, $other), each seeded with a copy
+# of the actual current plugin source (so DIGIVICE_DIR-based checks
+# have real files to work with), with $other one commit ahead of
+# $work after $work has fetched (but not merged) that commit.
+_seed_self_update_fixture() {
+  local bare="$1" work="$2" other="$3"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work" 2>/dev/null
+  cp "$DIGIVICE_PLUGIN" "$work/"
+  mkdir -p "$work/lib"
+  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
+  (cd "$work" && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m init && git push -q -u origin HEAD:main) >/dev/null
+  git clone -q "$bare" "$other" 2>/dev/null
+  (cd "$other" && git checkout -q main && echo "# bump" >> lib/navigation.zsh && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m bump && git push -q origin HEAD:main) >/dev/null
+  (cd "$work" && git fetch -q origin)
+}
+
+test_self_update_silent_when_up_to_date() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)"
+  git init -q --bare "$bare"
+  git clone -q "$bare" "$work" 2>/dev/null
+  cp "$DIGIVICE_PLUGIN" "$work/"
+  mkdir -p "$work/lib"
+  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$work/lib/"
+  (cd "$work" && git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m init && git push -q -u origin HEAD:main) >/dev/null
+  local out
+  out=$(zsh -c "source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
+  assert_eq "" "$out" "no update available should mean no suggestion"
+  rm -rf "$bare" "$work"
+}
+
+test_self_update_suggests_when_behind() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  _seed_self_update_fixture "$bare" "$work" "$other"
+  local out
+  out=$(zsh -c "source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
+  assert_contains "$out" "digivice: 1 update(s) available" "should suggest updating when the plugin's own clone is behind its origin"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_self_update_check_respects_opt_out() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  _seed_self_update_fixture "$bare" "$work" "$other"
+  local out
+  out=$(zsh -c "DIGIVICE_SELF_UPDATE_CHECK=0 source '$work/digivice.plugin.zsh'" < /dev/null 2>&1)
+  assert_eq "" "$out" "DIGIVICE_SELF_UPDATE_CHECK=0 should suppress the suggestion entirely"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_digivice_update_fast_forwards_and_reports_success() {
+  local bare="$(mktemp -d)" work="$(mktemp -d)" other="$(mktemp -d)"
+  _seed_self_update_fixture "$bare" "$work" "$other"
+  local out
+  out=$(zsh -c "source '$work/digivice.plugin.zsh'; digivice-update" < /dev/null 2>&1)
+  assert_contains "$out" "digivice updated" "digivice-update should report success"
+  assert_contains "$(<"$work/lib/navigation.zsh")" "# bump" "digivice-update should actually pull the new content"
+  rm -rf "$bare" "$work" "$other"
+}
+
+test_digivice_update_errors_outside_a_git_repo() {
+  local plain="$(mktemp -d)"
+  cp "$DIGIVICE_PLUGIN" "$plain/"
+  mkdir -p "$plain/lib"
+  cp "$DIGIVICE_PROJECT_ROOT"/lib/*.zsh "$plain/lib/"
+  local out
+  out=$(zsh -c "source '$plain/digivice.plugin.zsh'; digivice-update" < /dev/null 2>&1)
+  assert_contains "$out" "isn't a git repo" "digivice-update should error cleanly if its own directory isn't a git repo"
+  rm -rf "$plain"
+}
+
 test_drun_prefers_pnpm_lockfile() {
   local tmp="$(mktemp -d)"
   touch "$tmp/pnpm-lock.yaml"
